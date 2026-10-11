@@ -123,7 +123,8 @@ h1 { margin: 0; font-size: clamp(22px, 2.4vw, 28px); line-height: 1.2; font-weig
 .about h3 { margin: 4px 0 0; font-size: 12px; color: var(--ink-3); font-weight: 500; letter-spacing: 0.06em; }
 
 @media (max-width: 1180px) {
-  .ind-list { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+  .ind-list { grid-template-columns: repeat(auto-fill, minmax(min(200px, calc(50% - 3px)), 1fr)); }
+  .ind-btn { padding: 10px 12px; }
   .about { display: none; }
   .about.inline { display: grid; grid-column: 1 / -1; }
 }
@@ -300,6 +301,8 @@ dl.slip dd { margin: 0; text-align: right; min-width: 0; overflow-wrap: anywhere
 <script src="data/countries.js"></script>
 <script src="data/indicators/minimum-wage.js"></script>
 <script src="data/indicators/life-expectancy.js"></script>
+<script src="data/indicators/gdp-per-capita.js"></script>
+<script src="data/indicators/fertility.js"></script>
 <script>
 (function () {
   "use strict";
@@ -326,6 +329,13 @@ dl.slip dd { margin: 0; text-align: right; min-width: 0; overflow-wrap: anywhere
   let ind = byId.get(location.hash.slice(1)) || INDICATORS[0];
 
   const binOf = (i, v) => d3.bisectRight(i.thresholds, v);
+  // Position of a value on the indicator's bar (0–1): log scale, linear from 0, or linear from just below the minimum.
+  function barPos(i, v) {
+    if (i.barScale === "log") return Math.log(v / (i.min * 0.8)) / Math.log(i.max / (i.min * 0.8));
+    const lo = i.compare === "ratio" ? 0 : i.min - (i.max - i.min) * 0.08;
+    return (v - lo) / (i.max - lo);
+  }
+  const barLow = i => i.barScale === "log" ? i.min : i.compare === "ratio" ? 0 : i.min;
   const fmtValue = (i, v) => i.prefix + d3.format(`,.${i.decimals}f`)(v) + i.suffix;
   const nameKo = key => (COUNTRIES[key] && COUNTRIES[key].ko) || key;
 
@@ -586,7 +596,7 @@ dl.slip dd { margin: 0; text-align: right; min-width: 0; overflow-wrap: anywhere
     indList.innerHTML = INDICATORS.map(i => `
       <li><button type="button" class="ind-btn" data-ind="${i.id}" aria-pressed="${i === ind}">
         <span class="ind-name">${i.name}</span><span class="ind-group">${i.group}</span>
-        <span class="ind-meta">${i.unitLabel} · ${i.asOf} · ${i.ranked.length}개 국가·지역</span>
+        <span class="ind-meta">${i.asOf} · ${i.ranked.length}개 국가·지역</span>
         <span class="ind-ramp" aria-hidden="true">${colors.seq.map(c => `<i style="background:${c}"></i>`).join("")}</span>
       </button></li>`).join("");
   }
@@ -639,7 +649,7 @@ dl.slip dd { margin: 0; text-align: right; min-width: 0; overflow-wrap: anywhere
   function compareHtml(r, key) {
     const k = ind.rows[KOREA];
     if (!k || k.status !== "value") return "";
-    const pct = v => ((v - (ind.compare === "ratio" ? 0 : ind.min)) / (ind.max - (ind.compare === "ratio" ? 0 : ind.min)) * 100).toFixed(1);
+    const pct = v => (Math.max(0, Math.min(1, barPos(ind, v))) * 100).toFixed(1);
     let text;
     if (key === KOREA) text = "비교 기준 국가 (막대의 세로선이 한국)";
     else if (ind.compare === "ratio") text = `한국(${fmtValue(ind, k.value)})의 <b class="num">${d3.format(".0%")(r.value / k.value)}</b> 수준`;
@@ -648,7 +658,7 @@ dl.slip dd { margin: 0; text-align: right; min-width: 0; overflow-wrap: anywhere
       text = Math.abs(d) < 0.05 ? `한국(${fmtValue(ind, k.value)})과 같음`
         : `한국(${fmtValue(ind, k.value)})보다 <b class="num">${fmtValue(ind, Math.abs(d))}</b> ${d > 0 ? "높음" : "낮음"}`;
     }
-    const lo = ind.compare === "ratio" ? 0 : ind.min;
+    const lo = barLow(ind);
     return `<p class="compare">${text}</p>
       <div class="compare-bar" aria-hidden="true"><i style="width:${pct(r.value)}%"></i><b style="left:calc(${pct(k.value)}% - 1px)"></b></div>
       <div class="compare-scale" aria-hidden="true"><span>${fmtValue(ind, lo)}</span><span>${fmtValue(ind, ind.max)}</span></div>`;
@@ -695,25 +705,30 @@ dl.slip dd { margin: 0; text-align: right; min-width: 0; overflow-wrap: anywhere
 
   // Trend chart: selected country (solid) vs Korea (dashed), with a hover crosshair.
   function drawTrend(el, key, series) {
-    const W = el.clientWidth || 320, H = 132, m = { t: 8, r: 58, b: 22, l: 30 };
+    const W = el.clientWidth || 320, H = 132, m = { t: 8, r: 58, b: 22, l: 36 };
     const selName = labelOf(selected).length > 5 ? labelOf(selected).slice(0, 5) + "…" : labelOf(selected);
+    const ok = p => p[1] != null;
     const pts = series.values.map((v, i) => [series.start + i, v]);
+    const years = [series.start, series.start + series.values.length - 1];
     const kr = key !== KOREA && ind.rows[KOREA] && ind.rows[KOREA].series;
-    const kpts = kr ? kr.values.map((v, i) => [kr.start + i, v]) : null;
-    const all = kpts ? pts.concat(kpts) : pts;
-    const x = d3.scaleLinear().domain(d3.extent(pts, p => p[0])).range([m.l, W - m.r]);
+    const kpts = kr ? kr.values.map((v, i) => [kr.start + i, v]).filter(p => ok(p) && p[0] >= years[0] && p[0] <= years[1]) : null;
+    const all = pts.filter(ok).concat(kpts || []);
+    const x = d3.scaleLinear().domain(years).range([m.l, W - m.r]);
     const y = d3.scaleLinear().domain(d3.extent(all, p => p[1])).nice(4).range([H - m.b, m.t]);
-    const line = d3.line().x(p => x(p[0])).y(p => y(p[1]));
-    const last = pts[pts.length - 1];
-    const years = x.domain();
+    const line = d3.line().defined(ok).x(p => x(p[0])).y(p => y(p[1]));
+    const last = pts.filter(ok).pop();
+    const kLast = kpts && kpts.length ? kpts[kpts.length - 1] : null;
+    const yFmt = y.domain()[1] >= 10000 ? d3.format("~s") : d3.format("~g");
+    const xTicks = [years[0], ...x.ticks(4).filter(t => t - years[0] >= (years[1] - years[0]) * 0.18 && years[1] - t >= (years[1] - years[0]) * 0.18), years[1]];
+    const nudge = kLast && Math.abs(y(last[1]) - y(kLast[1])) < 12 ? (last[1] < kLast[1] ? 14 : -6) : 4;
     el.innerHTML = `
       <div class="trend-head"><span class="label">${ind.seriesLabel} (${years[0]}–${years[1]})</span><span class="trend-read" id="trendRead"></span></div>
       <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${labelOf(selected)} ${ind.seriesLabel}">
-        <g class="axis">${y.ticks(4).map(t => `<line class="grid-line" x1="${m.l}" x2="${W - m.r}" y1="${y(t)}" y2="${y(t)}"/><text x="${m.l - 6}" y="${y(t) + 3.5}" text-anchor="end">${t}</text>`).join("")}
-          ${[years[0], 1980, 2000, years[1]].filter((v, i, a) => a.indexOf(v) === i).map(t => `<text x="${x(t)}" y="${H - 3}" text-anchor="middle">${t}</text>`).join("")}</g>
-        ${kpts ? `<path class="line-ref" d="${line(kpts)}"/><text class="end-label" x="${x(kpts[kpts.length - 1][0]) + 4}" y="${y(kpts[kpts.length - 1][1]) + 4}">한국</text>` : ""}
+        <g class="axis">${y.ticks(4).map(t => `<line class="grid-line" x1="${m.l}" x2="${W - m.r}" y1="${y(t)}" y2="${y(t)}"/><text x="${m.l - 6}" y="${y(t) + 3.5}" text-anchor="end">${yFmt(t)}</text>`).join("")}
+          ${xTicks.map(t => `<text x="${x(t)}" y="${H - 3}" text-anchor="middle">${t}</text>`).join("")}</g>
+        ${kLast ? `<path class="line-ref" d="${line(kpts)}"/><text class="end-label" x="${x(kLast[0]) + 4}" y="${y(kLast[1]) + 4}">한국</text>` : ""}
         <path class="line-main" d="${line(pts)}"/>
-        <text class="end-label" x="${x(last[0]) + 4}" y="${y(last[1]) + (kpts && Math.abs(y(last[1]) - y(kpts[kpts.length - 1][1])) < 12 ? (last[1] < kpts[kpts.length - 1][1] ? 14 : -6) : 4)}">${selName}</text>
+        <text class="end-label" x="${x(last[0]) + 4}" y="${y(last[1]) + nudge}">${selName}</text>
         <line class="cross" id="cross" y1="${m.t}" y2="${H - m.b}" visibility="hidden"/>
         <circle class="dot" id="dot" r="4" visibility="hidden"/>
         <rect x="${m.l}" y="0" width="${W - m.l - m.r}" height="${H}" fill="transparent" id="hit"/>
@@ -725,9 +740,10 @@ dl.slip dd { margin: 0; text-align: right; min-width: 0; overflow-wrap: anywhere
       const yr = Math.round(Math.max(years[0], Math.min(years[1], x.invert(px))));
       const v = series.values[yr - series.start];
       cross.setAttribute("x1", x(yr)); cross.setAttribute("x2", x(yr)); cross.setAttribute("visibility", "visible");
-      dot.setAttribute("cx", x(yr)); dot.setAttribute("cy", y(v)); dot.setAttribute("visibility", "visible");
+      if (v != null) { dot.setAttribute("cx", x(yr)); dot.setAttribute("cy", y(v)); dot.setAttribute("visibility", "visible"); }
+      else dot.setAttribute("visibility", "hidden");
       const kv = kr ? kr.values[yr - kr.start] : null;
-      read.textContent = `${yr}년 ${fmtValue(ind, v)}` + (kv != null ? ` · 한국 ${fmtValue(ind, kv)}` : "");
+      read.textContent = `${yr}년 ${v != null ? fmtValue(ind, v) : "자료 없음"}` + (kv != null ? ` · 한국 ${fmtValue(ind, kv)}` : "");
     };
     const hide = () => { cross.setAttribute("visibility", "hidden"); dot.setAttribute("visibility", "hidden"); read.textContent = ""; };
     const hit = el.querySelector("#hit");
@@ -735,6 +751,7 @@ dl.slip dd { margin: 0; text-align: right; min-width: 0; overflow-wrap: anywhere
     hit.addEventListener("pointerdown", e => show(e.clientX));
     hit.addEventListener("pointerleave", hide);
   }
+
 
   // ---------- Right: ledger ----------
   const ledger = document.getElementById("ledger");
@@ -754,11 +771,10 @@ dl.slip dd { margin: 0; text-align: right; min-width: 0; overflow-wrap: anywhere
     const rows = ind.ranked.filter(r => match(r.id));
     const nones = ind.none.filter(match);
     const selKey = selected ? selected.key : null;
-    const span = ind.compare === "ratio" ? [0, ind.max] : [ind.min - (ind.max - ind.min) * 0.08, ind.max];
     let html = rows.map(r => `
       <li><button type="button" data-key="${r.id}" ${r.id === selKey ? 'aria-current="true"' : ""}>
         <span class="rk">${r.rank}</span><span class="nm">${nameKo(r.id)}</span><span class="v">${fmtValue(ind, r.value)}</span>
-        <span class="bar" style="width:${Math.max(1, (r.value - span[0]) / (span[1] - span[0]) * 100).toFixed(1)}%;background:${colors.seq[binOf(ind, r.value)]}"></span>
+        <span class="bar" style="width:${Math.max(1, barPos(ind, r.value) * 100).toFixed(1)}%;background:${colors.seq[binOf(ind, r.value)]}"></span>
       </button></li>`).join("");
     if (nones.length) {
       html += `<li class="ledger-group" aria-hidden="true">${ind.noneLabel}</li>` + nones.map(id => `
@@ -767,9 +783,10 @@ dl.slip dd { margin: 0; text-align: right; min-width: 0; overflow-wrap: anywhere
     }
     if (!rows.length && !nones.length) html = `<li class="empty">맞는 나라가 없습니다. 검색어나 지역을 바꿔 보세요.</li>`;
     ledger.innerHTML = html;
-    document.getElementById("ledgerTitle").textContent = `${ind.name} 순위`;
-    document.getElementById("ledgerFoot").textContent = ind.compare === "ratio"
-      ? "막대는 0부터 최댓값까지의 비율입니다."
+    document.getElementById("ledgerTitle").textContent = `${ind.name} 순위${ind.rankLabel ? ` (${ind.rankLabel})` : ""}`;
+    document.getElementById("ledgerFoot").textContent = ind.barScale === "log"
+      ? "값의 차이가 커서 막대는 로그 눈금으로 그립니다."
+      : ind.compare === "ratio" ? "막대는 0부터 최댓값까지의 비율입니다."
       : `막대는 최솟값(${fmtValue(ind, ind.min)}) 근처부터 그립니다.`;
   }
   ledger.addEventListener("click", (e) => {

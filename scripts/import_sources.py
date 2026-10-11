@@ -7,12 +7,19 @@ Usage:
     pip install rdata pandas
     git clone --depth 1 https://github.com/PPgp/wpp2024      # UN World Population Prospects 2024
     npm pack i18n-iso-countries@7.14.0 && tar xzf i18n-iso-countries-7.14.0.tgz
-    python3 scripts/import_sources.py --wpp path/to/wpp2024 --i18n path/to/package
+    git clone --depth 1 https://github.com/datasets/gdp          # World Bank GDP (current US$), refreshed monthly
+    git clone --depth 1 https://github.com/datasets/population   # World Bank population, refreshed monthly
+    python3 scripts/import_sources.py --wpp path/to/wpp2024 --i18n path/to/package \
+        --gdp path/to/gdp --population path/to/population
 
 Writes:
     data/countries.csv               id, iso3, name_ko, name_en, region
     data/life-expectancy.csv         latest-year life expectancy at birth (total / male / female)
     data/life-expectancy-series.csv  total life expectancy for every year since 1950
+    data/fertility.csv               latest-year total fertility rate
+    data/fertility-series.csv        total fertility rate for every year since 1950
+    data/gdp-per-capita.csv          latest available GDP, population and GDP per capita (2019 or later)
+    data/gdp-per-capita-series.csv   GDP per capita for every year since 2000 (blank when missing)
 """
 import argparse
 import csv
@@ -69,6 +76,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--wpp", required=True, type=Path)
     ap.add_argument("--i18n", required=True, type=Path)
+    ap.add_argument("--gdp", required=True, type=Path)
+    ap.add_argument("--population", required=True, type=Path)
     a = ap.parse_args()
 
     with (a.wpp / "data" / "UNlocations.txt").open(encoding="utf-8") as f:
@@ -117,6 +126,71 @@ def main():
             w.writerow([code3(cc)] + [f"{v:.1f}" for v in g["e0B"]])
 
     print(f"countries: {len(countries)}, life expectancy year: {latest}, series {years[0]}-{years[-1]}")
+
+    import_fertility(a.wpp, country_ids)
+    import_gdp_per_capita(a.gdp, a.population, countries)
+
+
+def write_series(path, series, years, fmt):
+    with path.open("w", encoding="utf-8", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["id"] + years)
+        for cid in sorted(series):
+            w.writerow([cid] + [fmt(series[cid][y]) if y in series[cid] else "" for y in years])
+
+
+def import_fertility(wpp, country_ids):
+    tfr = rdata.read_rda(str(wpp / "data" / "tfr1dt.rda"))["tfr1dt"]
+    tfr = tfr[tfr["country_code"].astype(int).isin(country_ids)]
+    latest = int(tfr["year"].max())
+    years = sorted(int(y) for y in tfr["year"].unique())
+    series = {}
+    for _, r in tfr.iterrows():
+        series.setdefault(code3(r["country_code"]), {})[int(r["year"])] = float(r["tfr"])
+    with (DATA / "fertility.csv").open("w", encoding="utf-8", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["id", "year", "tfr"])
+        for cid in sorted(series):
+            w.writerow([cid, latest, f"{series[cid][latest]:.3f}"])
+    write_series(DATA / "fertility-series.csv", series, years, lambda v: f"{v:.2f}")
+    print(f"fertility: {len(series)} countries, {years[0]}-{latest}")
+
+
+MIN_GDP_YEAR = 2019  # older figures are left out rather than shown beside 2023 values
+
+
+def import_gdp_per_capita(gdp_repo, pop_repo, countries):
+    by_iso = {c["iso3"]: c["id"] for c in countries if c["iso3"]}
+
+    def load(path):
+        out = {}
+        with path.open(encoding="utf-8") as f:
+            for r in csv.DictReader(f):
+                cid = by_iso.get(r["Country Code"])
+                if cid and r["Value"]:
+                    out.setdefault(cid, {})[int(r["Year"])] = float(r["Value"])
+        return out
+
+    gdp = load(gdp_repo / "data" / "gdp.csv")
+    pop = load(pop_repo / "data" / "population.csv")
+    pc = {cid: {y: v / pop[cid][y] for y, v in ys.items() if pop.get(cid, {}).get(y)} for cid, ys in gdp.items()}
+    pc = {cid: ys for cid, ys in pc.items() if ys}
+
+    rows = []
+    for cid, ys in sorted(pc.items()):
+        y = max(ys)
+        if y < MIN_GDP_YEAR:
+            continue
+        rows.append([cid, y, f"{gdp[cid][y]:.0f}", f"{pop[cid][y]:.0f}", f"{ys[y]:.1f}"])
+    with (DATA / "gdp-per-capita.csv").open("w", encoding="utf-8", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["id", "year", "gdp_usd", "population", "gdp_per_capita_usd"])
+        w.writerows(rows)
+
+    kept = {r[0] for r in rows}
+    years = list(range(2000, max(r[1] for r in rows) + 1))
+    write_series(DATA / "gdp-per-capita-series.csv", {c: pc[c] for c in kept}, years, lambda v: f"{v:.0f}")
+    print(f"gdp per capita: {len(rows)} countries (latest year >= {MIN_GDP_YEAR})")
 
 
 if __name__ == "__main__":
