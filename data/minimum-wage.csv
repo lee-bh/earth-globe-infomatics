@@ -1,0 +1,117 @@
+id,name_ko,name_en,region,status,amount,currency,period,per_month,effective,fx_per_usd,source,note
+410,대한민국,South Korea,아시아,statutory,10320,KRW,hour,209,2026-01,1340,최저임금위원회,월 209시간(주휴 포함) 환산. 2027년 시급 1만700원 확정
+392,일본,Japan,아시아,statutory,1177,JPY,hour,173.33,2026-10,158.3,후생노동성,도도부현별 차등. 전국 가중평균 기준
+156,중국,China,아시아,statutory,2740,CNY,month,1,2025-07,6.69,상하이시 인력자원사회보장국,전국 단일 기준 없음. 최고 수준인 상하이 기준
+158,대만,Taiwan,아시아,statutory,29500,TWD,month,1,2026-01,32.0,공개 보도 종합(원문 미확인),
+344,홍콩,Hong Kong,아시아,statutory,43.1,HKD,hour,173.33,2026-05,7.85,Trading Economics,
+702,싱가포르,Singapore,아시아,none,,,,,,,Ministry of Manpower,법정 최저임금 없음(업종별 점진임금제만 운영)
+458,말레이시아,Malaysia,아시아,statutory,1700,MYR,month,1,2025-02,4.08,Trading Economics,
+764,태국,Thailand,아시아,statutory,400,THB,day,26,2025-07,33.6,Expatica·Employsome,지역별 337~400바트. 방콕 기준
+704,베트남,Vietnam,아시아,statutory,5310000,VND,month,1,2026-01,26100,시행령 293/2025/ND-CP,4개 지역 차등. 1지역 기준
+360,인도네시아,Indonesia,아시아,statutory,5729876,IDR,month,1,2026-01,17880,자카르타 주정부,주별 차등. 자카르타 기준
+608,필리핀,Philippines,아시아,statutory,695,PHP,day,26,2025-07,58.5,Deel,지역별 차등. 마닐라 수도권(NCR) 비농업 기준
+356,인도,India,아시아,statutory,178,INR,day,26,2019-07,96.8,인도 노동고용부,국가 하한선(구속력 없음). 실제 적용은 주·업종별 상이
+586,파키스탄,Pakistan,아시아,statutory,40700,PKR,month,1,2026-07,280,Employsome,연방(이슬라마바드) 기준. 주별 차등
+050,방글라데시,Bangladesh,아시아,statutory,12500,BDT,month,1,2023-12,122,최저임금위원회,전국 단일 기준 없음. 의류 산업 기준
+144,스리랑카,Sri Lanka,아시아,statutory,30000,LKR,month,1,2026-01,300,Trading Economics,
+524,네팔,Nepal,아시아,statutory,19550,NPR,month,1,2025-07,155,공개 보도 종합(원문 미확인),
+116,캄보디아,Cambodia,아시아,statutory,210,USD,month,1,2026-01,1,Trading Economics,의류·신발 산업 기준
+418,라오스,Laos,아시아,statutory,2500000,LAK,month,1,2025,21700,Trading Economics,
+496,몽골,Mongolia,아시아,statutory,792000,MNT,month,1,2026-01,3550,Trading Economics,
+398,카자흐스탄,Kazakhstan,아시아,statutory,85000,KZT,month,1,2024-01,520,Trading Economics,
+860,우즈베키스탄,Uzbekistan,아시아,statutory,1271000,UZS,month,1,2026-01,12500,Trading Economics,
+376,이스라엘,Israel,중동,statutory,6443.85,ILS,month,1,2026-04,3.06,WageIndicator·CWS Israel,
+792,튀르키예,Türkiye,중동,statutory,33030,TRY,month,1,2026-01,49.2,Trading Economics,세전 총액 기준
+682,사우디아라비아,Saudi Arabia,중동,none,,,,,,,minimum-wage.org,민간부문 법정 최저임금 없음
+784,아랍에미리트,United Arab Emirates,중동,none,,,,,,,MoHRE,일반 근로자 대상 최저임금 없음(자국민 대상 기준만 존재)
+512,오만,Oman,중동,none,,,,,,,remotepeople,일반 근로자 대상 최저임금 없음(자국민 대상 325리알만 존재)
+048,바레인,Bahrain,중동,none,,,,,,,,법정 최저임금 없음
+634,카타르,Qatar,중동,statutory,1000,QAR,month,1,2021-03,3.64,카타르 노동부,기본급 기준. 숙식 미제공 시 수당 800리얄 별도
+400,요르단,Jordan,중동,statutory,290,JOD,month,1,2025-01,0.709,공개 보도 종합(원문 미확인),
+368,이라크,Iraq,중동,statutory,350000,IQD,month,1,2023,1310,공개 보도 종합(원문 미확인),
+442,룩셈부르크,Luxembourg,유럽,statutory,2771,EUR,month,1,2026-07,0.8924,Eurostat,비숙련 기준
+372,아일랜드,Ireland,유럽,statutory,2391,EUR,month,1,2026-07,0.8924,Eurostat,
+276,독일,Germany,유럽,statutory,2343,EUR,month,1,2026-07,0.8924,Eurostat,시급 13.90유로
+528,네덜란드,Netherlands,유럽,statutory,2338,EUR,month,1,2026-07,0.8924,Eurostat,
+056,벨기에,Belgium,유럽,statutory,2234,EUR,month,1,2026-07,0.8924,IndexBox(Eurostat),
+250,프랑스,France,유럽,statutory,1867,EUR,month,1,2026-07,0.8924,Eurostat,
+724,스페인,Spain,유럽,statutory,1425,EUR,month,1,2026-07,0.8924,Eurostat,연 14회 지급분을 12개월로 환산
+705,슬로베니아,Slovenia,유럽,statutory,1482,EUR,month,1,2026-07,0.8924,Trading Economics(Eurostat),
+616,폴란드,Poland,유럽,statutory,1119,EUR,month,1,2026-07,0.8924,Eurostat,
+196,키프로스,Cyprus,유럽,statutory,1088,EUR,month,1,2026-07,0.8924,Eurostat,
+300,그리스,Greece,유럽,statutory,1073,EUR,month,1,2026-07,0.8924,Eurostat,
+620,포르투갈,Portugal,유럽,statutory,1073,EUR,month,1,2026-07,0.8924,Eurostat,
+191,크로아티아,Croatia,유럽,statutory,1050,EUR,month,1,2026-07,0.8924,Eurostat,
+440,리투아니아,Lithuania,유럽,statutory,1153,EUR,month,1,2026-07,0.8924,Trading Economics(Eurostat),
+470,몰타,Malta,유럽,statutory,994,EUR,month,1,2026-07,0.8924,Eurostat,
+233,에스토니아,Estonia,유럽,statutory,946,EUR,month,1,2026-07,0.8924,IndexBox(Eurostat),
+203,체코,Czechia,유럽,statutory,923,EUR,month,1,2026-07,0.8924,IndexBox(Eurostat),
+703,슬로바키아,Slovakia,유럽,statutory,915,EUR,month,1,2026-01,0.8924,Eurostat,
+348,헝가리,Hungary,유럽,statutory,838,EUR,month,1,2026-01,0.8924,Eurostat,
+642,루마니아,Romania,유럽,statutory,4325,RON,month,1,2026-07,4.77,루마니아 정부,
+428,라트비아,Latvia,유럽,statutory,780,EUR,month,1,2026-07,0.8924,Eurostat,
+100,불가리아,Bulgaria,유럽,statutory,620,EUR,month,1,2026-07,0.8924,Eurostat,
+826,영국,United Kingdom,유럽,statutory,12.71,GBP,hour,173.33,2026-04,0.7565,Trading Economics,21세 이상 National Living Wage
+688,세르비아,Serbia,유럽,statutory,743,EUR,month,1,2026-07,0.8924,Eurostat,
+499,몬테네그로,Montenegro,유럽,statutory,670,EUR,month,1,2026-07,0.8924,Eurostat,
+807,북마케도니아,North Macedonia,유럽,statutory,624,EUR,month,1,2026-07,0.8924,Eurostat,
+008,알바니아,Albania,유럽,statutory,50000,ALL,month,1,2025-01,86.6,Trading Economics,
+070,보스니아 헤르체고비나,Bosnia and Herzegovina,유럽,statutory,1027,BAM,month,1,2026-01,1.745,Trading Economics,
+Kosovo,코소보,Kosovo,유럽,statutory,350,EUR,month,1,2023-09,0.8924,공개 보도 종합(원문 미확인),
+498,몰도바,Moldova,유럽,statutory,6300,MDL,month,1,2026-01,17.8,Trading Economics,
+804,우크라이나,Ukraine,유럽,statutory,8647,UAH,month,1,2026-01,45.5,Trading Economics,
+112,벨라루스,Belarus,유럽,statutory,858,BYN,month,1,2026-01,3.0,Trading Economics,
+643,러시아,Russia,유럽,statutory,27093,RUB,month,1,2026-01,85,Trading Economics,
+051,아르메니아,Armenia,아시아,statutory,75000,AMD,month,1,2026-01,385,Trading Economics,
+031,아제르바이잔,Azerbaijan,아시아,statutory,400,AZN,month,1,2026-01,1.70,Trading Economics,
+268,조지아,Georgia,아시아,none,,,,,,,공개 보도 종합(원문 미확인),1999년 이후 갱신되지 않아 사실상 없음(공공부문 제외)
+756,스위스,Switzerland,유럽,none,,,,,,,,연방 최저임금 없음(일부 주만 시행)
+578,노르웨이,Norway,유럽,none,,,,,,,,법정 최저임금 없음(단체협약으로 결정)
+752,스웨덴,Sweden,유럽,none,,,,,,,Eurostat,법정 최저임금 없음(단체협약으로 결정)
+208,덴마크,Denmark,유럽,none,,,,,,,Eurostat,법정 최저임금 없음(단체협약으로 결정)
+246,핀란드,Finland,유럽,none,,,,,,,Eurostat,법정 최저임금 없음(단체협약으로 결정)
+040,오스트리아,Austria,유럽,none,,,,,,,Eurostat,법정 최저임금 없음(단체협약으로 결정)
+380,이탈리아,Italy,유럽,none,,,,,,,Eurostat,법정 최저임금 없음(단체협약으로 결정)
+352,아이슬란드,Iceland,유럽,none,,,,,,,,법정 최저임금 없음(단체협약으로 결정)
+840,미국,United States,북미,statutory,7.25,USD,hour,173.33,2009-07,1,미국 노동부,연방 기준. 30개 이상 주가 더 높은 주 최저임금 시행
+630,푸에르토리코,Puerto Rico,북미,statutory,10.50,USD,hour,173.33,2024-07,1,공개 보도 종합(원문 미확인),
+124,캐나다,Canada,북미,statutory,17.75,CAD,hour,173.33,2025-04,1.423,캐나다 고용사회개발부,연방 규제 업종 기준. 주별 15~19.75캐나다달러
+484,멕시코,Mexico,중남미,statutory,315.04,MXN,day,30.4,2026-01,18.2,CONASAMI,일반 지역 기준(북부 국경지대 440.87페소)
+076,브라질,Brazil,중남미,statutory,1621,BRL,month,1,2026-01,5.00,브라질 연방정부,
+032,아르헨티나,Argentina,중남미,statutory,376600,ARS,month,1,2026-08,1517,Rivermate,
+152,칠레,Chile,중남미,statutory,539000,CLP,month,1,2026-01,977,칠레 노동부,18~65세 기준
+170,콜롬비아,Colombia,중남미,statutory,1750905,COP,month,1,2026-01,3214,콜롬비아 노동부,교통보조금 24만9095페소 별도
+604,페루,Peru,중남미,statutory,1130,PEN,month,1,2025-01,3.45,Rivermate,
+858,우루과이,Uruguay,중남미,statutory,24353,UYU,month,1,2026-01,39.5,Rivermate,
+188,코스타리카,Costa Rica,중남미,statutory,375000,CRC,month,1,2026-01,500,Rio Times,직종별 차등. 비숙련 기준 근사치
+591,파나마,Panama,중남미,statutory,3.13,USD,hour,208,2026-01,1,Trading Economics,업종·지역별 차등. 주 48시간 환산
+218,에콰도르,Ecuador,중남미,statutory,482,USD,month,1,2026-01,1,Trading Economics,
+222,엘살바도르,El Salvador,중남미,statutory,409,USD,month,1,2025-06,1,Trading Economics,상업·서비스업 기준
+320,과테말라,Guatemala,중남미,statutory,4002.28,GTQ,month,1,2026-01,7.7,Trading Economics,비농업 기준
+340,온두라스,Honduras,중남미,statutory,9597,HNL,month,1,2026-01,26.3,Trading Economics,업종·규모별 차등
+558,니카라과,Nicaragua,중남미,statutory,8320,NIO,month,1,2026-03,36.6,Trading Economics,업종별 차등
+214,도미니카공화국,Dominican Rep.,중남미,statutory,16993,DOP,month,1,2026-02,63,Trading Economics,사업장 규모별 차등
+068,볼리비아,Bolivia,중남미,statutory,3300,BOB,month,1,2025-05,8.35,Trading Economics,환율 변동이 커 달러 환산값은 근사치
+600,파라과이,Paraguay,중남미,statutory,2899048,PYG,month,1,2025-07,7200,Trading Economics,
+862,베네수엘라,Venezuela,중남미,statutory,130,VES,month,1,2022-03,130,Rio Times,식비 보너스 등 별도 수당 제외. 약 1달러
+388,자메이카,Jamaica,중남미,statutory,16000,JMD,week,4.333,2025-06,158,공개 보도 종합(원문 미확인),주 40시간 기준
+780,트리니다드토바고,Trinidad and Tobago,중남미,statutory,20.50,TTD,hour,173.33,2023-03,6.78,공개 보도 종합(원문 미확인),
+036,호주,Australia,오세아니아,statutory,26.44,AUD,hour,164.67,2026-07,1.432,Fair Work Commission,주 38시간 환산(주급 1004.9호주달러)
+554,뉴질랜드,New Zealand,오세아니아,statutory,23.95,NZD,hour,173.33,2026-04,1.78,뉴질랜드 고용부,
+710,남아프리카공화국,South Africa,아프리카,statutory,30.23,ZAR,hour,173.33,2026-03,16.7,남아공 고용노동부,
+516,나미비아,Namibia,아프리카,statutory,18,NAD,hour,173.33,2025-01,16.7,wage.is,
+024,앙골라,Angola,아프리카,statutory,70000,AOA,month,1,2024-09,920,공개 보도 종합(원문 미확인),기업 규모별 차등. 기본 기준
+566,나이지리아,Nigeria,아프리카,statutory,70000,NGN,month,1,2024-07,1331,나이지리아 연방정부,
+288,가나,Ghana,아프리카,statutory,19.97,GHS,day,26,2026-01,11.0,Employsome,
+384,코트디부아르,Côte d'Ivoire,아프리카,statutory,75000,XOF,month,1,2023-01,585.4,africa-hr,
+686,세네갈,Senegal,아프리카,statutory,64223,XOF,month,1,2023-01,585.4,공개 보도 종합(원문 미확인),
+204,베냉,Benin,아프리카,statutory,52000,XOF,month,1,2023-01,585.4,공개 보도 종합(원문 미확인),
+768,토고,Togo,아프리카,statutory,52500,XOF,month,1,2023-01,585.4,공개 보도 종합(원문 미확인),
+120,카메룬,Cameroon,아프리카,statutory,43969,XAF,month,1,2023,585.4,공개 보도 종합(원문 미확인),
+266,가봉,Gabon,아프리카,statutory,150000,XAF,month,1,2010,585.4,공개 보도 종합(원문 미확인),
+404,케냐,Kenya,아프리카,statutory,16113.75,KES,month,1,2024-11,129,AnooreHR,나이로비 등 대도시 일반노동자 기준
+818,이집트,Egypt,아프리카,statutory,7000,EGP,month,1,2025-03,52.4,이집트 국가임금위원회,민간부문 기준
+504,모로코,Morocco,아프리카,statutory,3423,MAD,month,1,2026-01,9.2,africa-hr,비농업(SMIG) 기준
+012,알제리,Algeria,아프리카,statutory,24000,DZD,month,1,2025-01,132,공개 보도 종합(원문 미확인),
+788,튀니지,Tunisia,아프리카,statutory,528,TND,month,1,2025-05,2.95,공개 보도 종합(원문 미확인),주 48시간 비농업 기준
+231,에티오피아,Ethiopia,아프리카,none,,,,,,,AnooreHR,민간부문 법정 최저임금 없음
