@@ -9,8 +9,9 @@ Usage:
     npm pack i18n-iso-countries@7.14.0 && tar xzf i18n-iso-countries-7.14.0.tgz
     git clone --depth 1 https://github.com/datasets/gdp          # World Bank GDP (current US$), refreshed monthly
     git clone --depth 1 https://github.com/datasets/population   # World Bank population, refreshed monthly
+    git clone --depth 1 https://github.com/datasets/world-development-indicators   # World Bank WDI mirror (land area)
     python3 scripts/import_sources.py --wpp path/to/wpp2024 --i18n path/to/package \
-        --gdp path/to/gdp --population path/to/population
+        --gdp path/to/gdp --population path/to/population --wdi path/to/world-development-indicators
 
 Writes:
     data/countries.csv               id, iso3, name_ko, name_en, region
@@ -20,6 +21,9 @@ Writes:
     data/fertility-series.csv        total fertility rate for every year since 1950
     data/gdp-per-capita.csv          latest available GDP, population and GDP per capita (2019 or later)
     data/gdp-per-capita-series.csv   GDP per capita for every year since 2000 (blank when missing)
+    data/population.csv              UN population for the reference year (total / male / female) and 2050 / 2100 projections
+    data/population-series.csv       UN population for every year 1950 to the reference year
+    data/population-density.csv      reference-year UN population ÷ World Bank land area (km²)
 """
 import argparse
 import csv
@@ -78,6 +82,7 @@ def main():
     ap.add_argument("--i18n", required=True, type=Path)
     ap.add_argument("--gdp", required=True, type=Path)
     ap.add_argument("--population", required=True, type=Path)
+    ap.add_argument("--wdi", required=True, type=Path)
     a = ap.parse_args()
 
     with (a.wpp / "data" / "UNlocations.txt").open(encoding="utf-8") as f:
@@ -129,6 +134,7 @@ def main():
 
     import_fertility(a.wpp, country_ids)
     import_gdp_per_capita(a.gdp, a.population, countries)
+    import_population(a.wpp, country_ids, countries, a.wdi)
 
 
 def write_series(path, series, years, fmt):
@@ -191,6 +197,55 @@ def import_gdp_per_capita(gdp_repo, pop_repo, countries):
     years = list(range(2000, max(r[1] for r in rows) + 1))
     write_series(DATA / "gdp-per-capita-series.csv", {c: pc[c] for c in kept}, years, lambda v: f"{v:.0f}")
     print(f"gdp per capita: {len(rows)} countries (latest year >= {MIN_GDP_YEAR})")
+
+
+
+POP_YEAR = 2026  # UN WPP 2024 estimates run to 2023; later years are its medium-variant projection
+
+
+def import_population(wpp, country_ids, countries, wdi):
+    est = rdata.read_rda(str(wpp / "data" / "popAge1dt.rda"))["popAge1dt"]
+    est = est[est["country_code"].astype(int).isin(country_ids) & (est["year"] >= 1950)]
+    est = est.groupby(["country_code", "year"])[["popM", "popF", "pop"]].sum().reset_index()
+    proj = rdata.read_rda(str(wpp / "data" / "popproj1dt.rda"))["popproj1dt"]
+    proj = proj[proj["country_code"].astype(int).isin(country_ids)].copy()
+    proj["pop"] = proj["popM"] + proj["popF"]
+
+    # values are in thousands
+    total, male, female = {}, {}, {}
+    for frame in (est, proj):
+        for _, r in frame.iterrows():
+            key = (code3(r["country_code"]), int(r["year"]))
+            total[key], male[key], female[key] = r["pop"] * 1000, r["popM"] * 1000, r["popF"] * 1000
+
+    ids = sorted({cid for cid, _ in total})
+    with (DATA / "population.csv").open("w", encoding="utf-8", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["id", "year", "population", "male", "female", "population_2050", "population_2100"])
+        for cid in ids:
+            w.writerow([cid, POP_YEAR] + [f"{v:.0f}" for v in (
+                total[cid, POP_YEAR], male[cid, POP_YEAR], female[cid, POP_YEAR], total[cid, 2050], total[cid, 2100])])
+
+    years = list(range(1950, POP_YEAR + 1))
+    series = {cid: {y: total[cid, y] for y in years if (cid, y) in total} for cid in ids}
+    write_series(DATA / "population-series.csv", series, years, lambda v: f"{v:.0f}")
+
+    # World Bank land area: latest non-empty year per economy
+    by_iso = {c["iso3"]: c["id"] for c in countries if c["iso3"]}
+    land = {}
+    with (wdi / "indicators" / "ag.lnd.totl.k2" / "data.csv").open(encoding="utf-8") as f:
+        for r in csv.DictReader(f):
+            cid = by_iso.get(r["Country Code"])
+            if cid and r["Value"] and (cid not in land or int(r["Year"]) > land[cid][0]):
+                land[cid] = (int(r["Year"]), float(r["Value"]))
+    with (DATA / "population-density.csv").open("w", encoding="utf-8", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["id", "year", "population", "land_area_km2", "land_area_year", "density_per_km2"])
+        for cid in ids:
+            if cid in land and land[cid][1] > 0:
+                pop = total[cid, POP_YEAR]
+                w.writerow([cid, POP_YEAR, f"{pop:.0f}", f"{land[cid][1]:.2f}".rstrip("0").rstrip("."), land[cid][0], f"{pop / land[cid][1]:.2f}"])
+    print(f"population: {len(ids)} countries ({POP_YEAR}); density: {sum(1 for c in ids if c in land)} with land area")
 
 
 if __name__ == "__main__":

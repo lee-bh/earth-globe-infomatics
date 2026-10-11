@@ -336,12 +336,125 @@ def build_fertility(countries):
     })
 
 
+# ---------------------------------------------------------------- population & density
+
+def area(km2):
+    return f"{km2:,.0f}km²" if km2 >= 100 else f"{km2:,.2f}".rstrip("0").rstrip(".") + "km²"
+
+
+def build_population(countries):
+    start, series = read_series("population-series.csv")
+    rows = {}
+    year = None
+    for r in read_csv("population.csv"):
+        cid, year = r["id"], int(r["year"])
+        pop, male, female = float(r["population"]), float(r["male"]), float(r["female"])
+        p2050, p2100 = float(r["population_2050"]), float(r["population_2100"])
+        s = series_obj(start, series.get(cid))
+        details = [
+            ["남성", people(male)],
+            ["여성", people(female)],
+        ]
+        if s:
+            details.append([f"{s['start']}년", people(s["values"][0])])
+        details += [
+            ["2050년 전망", f"{people(p2050)} ({(p2050 / pop - 1) * 100:+.0f}%)"],
+            ["2100년 전망", f"{people(p2100)} ({(p2100 / pop - 1) * 100:+.0f}%)"],
+            ["기준", f"{year}년 7월 1일 (중위 추계)"],
+        ]
+        rows[cid] = {
+            "status": "value",
+            "value": round(pop),
+            "tip": f"2050년 전망 {people(p2050)}",
+            "details": details,
+            "series": s,
+        }
+    push_indicator({
+        "id": "population",
+        "order": 5,
+        "group": "인구",
+        "name": "인구",
+        "longName": "총인구",
+        "summary": "그해 7월 1일 기준으로 나라 안에 사는 사람 수",
+        "asOf": f"{year}년",
+        "unitLabel": "명",
+        "format": "count",
+        "prefix": "", "suffix": "", "bigUnit": "", "decimals": 0,
+        "compare": "ratio",
+        "barScale": "log",
+        "thresholds": [1e6, 1e7, 3e7, 1e8, 3e8],
+        "binLabels": ["~100만", "100만–1천만", "1천만–3천만", "3천만–1억", "1억–3억", "3억+"],
+        "legendTitle": "총인구 (명)",
+        "noneLabel": None,
+        "seriesLabel": "인구 추이",
+        "method": [
+            f"유엔 인구국 세계인구전망(WPP) 2024 값입니다. 2023년까지는 추정치, 그 뒤는 중위 추계라 {year}년 값도 추계입니다.",
+            f"상세 카드에는 2050년과 2100년 중위 추계를 함께 적었고, 괄호 안은 {year}년 대비 증감률입니다. 추이 그래프는 1950년부터 {year}년까지입니다.",
+            "대만·홍콩·마카오와 해외 영토도 따로 집계되어 있습니다. 순위표 막대는 값의 차이가 커서 로그 눈금입니다.",
+        ],
+        "sources": [
+            {"name": "UN World Population Prospects 2024", "url": "https://population.un.org/wpp/"},
+            {"name": "wpp2024 R 패키지 (UN 인구국 배포)", "url": "https://github.com/PPgp/wpp2024"},
+        ],
+        "rows": rows,
+    })
+
+
+def build_population_density(countries):
+    rows = {}
+    year = None
+    for r in read_csv("population-density.csv"):
+        cid, year = r["id"], int(r["year"])
+        pop, land, dens = float(r["population"]), float(r["land_area_km2"]), float(r["density_per_km2"])
+        rows[cid] = {
+            "status": "value",
+            "value": round(dens, 2),
+            "tip": f"인구 {people(pop)} · 면적 {area(land)}",
+            "details": [
+                ["인구", people(pop)],
+                ["육지 면적", area(land)],
+                ["면적 기준 연도", f"{r['land_area_year']}년 (세계은행)"],
+                ["인구 기준", f"{year}년 (UN 중위 추계)"],
+            ],
+        }
+    push_indicator({
+        "id": "population-density",
+        "order": 6,
+        "group": "인구",
+        "name": "인구밀도",
+        "longName": "인구밀도",
+        "summary": "육지 1km²에 사는 평균 인구",
+        "asOf": f"{year}년",
+        "unitLabel": "명 / km²",
+        "prefix": "", "suffix": "명", "bigUnit": "/ km²", "decimals": 0,
+        "compare": "ratio",
+        "barScale": "log",
+        "thresholds": [10, 50, 100, 300, 1000],
+        "binLabels": ["~10", "10–50", "50–100", "100–300", "300–1k", "1k+"],
+        "legendTitle": "인구밀도 (km²당 명 · k = 1,000)",
+        "noneLabel": None,
+        "method": [
+            f"인구 지표와 같은 유엔 세계인구전망 2024의 {year}년 인구를 세계은행 육지 면적(AG.LND.TOTL.K2, 호수·강 같은 내수면 제외)으로 나눴습니다.",
+            "세계은행 통계에 면적이 없는 곳(대만, 일부 해외 영토 등)은 자료 없음입니다.",
+            "나라 전체 평균이라 사람이 살기 어려운 사막·산지가 넓은 나라(몽골, 캐나다, 호주 등)는 실제 도시의 체감 밀도보다 훨씬 낮게 나옵니다. 마카오·모나코·싱가포르 같은 도시국가가 최상위에 옵니다.",
+        ],
+        "sources": [
+            {"name": "UN World Population Prospects 2024", "url": "https://population.un.org/wpp/"},
+            {"name": "World Bank – Land area (sq. km)", "url": "https://data.worldbank.org/indicator/AG.LND.TOTL.K2"},
+            {"name": "datasets/world-development-indicators (세계은행 WDI 미러)", "url": "https://github.com/datasets/world-development-indicators"},
+        ],
+        "rows": rows,
+    })
+
+
 def main():
     countries = build_countries()
     build_minimum_wage(countries)
     build_life_expectancy(countries)
     build_gdp_per_capita(countries)
     build_fertility(countries)
+    build_population(countries)
+    build_population_density(countries)
 
     if len(sys.argv) > 1:
         topo = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))

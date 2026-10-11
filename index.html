@@ -16,7 +16,7 @@
   --ink-2: #4a5568;
   --ink-3: #6b7484;
   --rule: #dde3ea;
-  --ocean: #e3eaf2;
+  --ocean: #eaedf1;
   --ocean-edge: #c9d4e1;
   --land-none: #d5d9df;
   --hatch: #8c95a3;
@@ -26,7 +26,7 @@
   --accent: #2a78d6;
   --accent-soft: rgba(42, 120, 214, 0.10);
   --ref: #8c95a3;
-  --seq-1: #cde2fb; --seq-2: #9ec5f4; --seq-3: #6da7ec; --seq-4: #3987e5; --seq-5: #1c5cab; --seq-6: #0d366b;
+  --seq-1: #b7d3f6; --seq-2: #86b6ef; --seq-3: #5598e7; --seq-4: #2a78d6; --seq-5: #1c5cab; --seq-6: #0d366b;
   --shade: rgba(14, 23, 38, 0.18);
   --shine: rgba(255, 255, 255, 0.35);
   --tip-bg: #0e1726;
@@ -303,6 +303,8 @@ dl.slip dd { margin: 0; text-align: right; min-width: 0; overflow-wrap: anywhere
 <script src="data/indicators/life-expectancy.js"></script>
 <script src="data/indicators/gdp-per-capita.js"></script>
 <script src="data/indicators/fertility.js"></script>
+<script src="data/indicators/population.js"></script>
+<script src="data/indicators/population-density.js"></script>
 <script>
 (function () {
   "use strict";
@@ -336,7 +338,26 @@ dl.slip dd { margin: 0; text-align: right; min-width: 0; overflow-wrap: anywhere
     return (v - lo) / (i.max - lo);
   }
   const barLow = i => i.barScale === "log" ? i.min : i.compare === "ratio" ? 0 : i.min;
-  const fmtValue = (i, v) => i.prefix + d3.format(`,.${i.decimals}f`)(v) + i.suffix;
+  // 51563811 -> "5,156만 명", 1411369625 -> "14억 1,137만 명"
+  function koCount(n) {
+    if (n < 1e5) return d3.format(",.0f")(n) + "명";
+    const man = Math.round(n / 1e4), eok = Math.floor(man / 1e4), rest = man % 1e4;
+    return eok ? `${eok}억${rest ? " " + d3.format(",")(rest) + "만" : ""} 명` : `${d3.format(",")(rest)}만 명`;
+  }
+  // axis labels: 5000만, 1.5억
+  function koShort(n) {
+    if (n >= 1e8) return d3.format("~g")(+(n / 1e8).toFixed(1)) + "억";
+    if (n >= 1e4) return d3.format(",")(Math.round(n / 1e4)) + "만";
+    return d3.format(",")(n);
+  }
+  function fmtValue(i, v) {
+    if (i.format === "count") return koCount(v);
+    // whole-number indicators still show one decimal below 10 (e.g. 0.1명/km²), except money
+    const dec = i.decimals === 0 && !i.prefix && Math.abs(v) < 10 ? 1 : i.decimals;
+    return i.prefix + d3.format(`,.${dec}f`)(v) + i.suffix;
+  }
+  // compact form for narrow columns: "14.8억 명", "5,156만 명"
+  const fmtShort = (i, v) => i.format === "count" ? (v < 1e4 ? koCount(v) : koShort(v) + " 명") : fmtValue(i, v);
   const nameKo = key => (COUNTRIES[key] && COUNTRIES[key].ko) || key;
 
   // ---------- Geography ----------
@@ -652,7 +673,10 @@ dl.slip dd { margin: 0; text-align: right; min-width: 0; overflow-wrap: anywhere
     const pct = v => (Math.max(0, Math.min(1, barPos(ind, v))) * 100).toFixed(1);
     let text;
     if (key === KOREA) text = "비교 기준 국가 (막대의 세로선이 한국)";
-    else if (ind.compare === "ratio") text = `한국(${fmtValue(ind, k.value)})의 <b class="num">${d3.format(".0%")(r.value / k.value)}</b> 수준`;
+    else if (ind.compare === "ratio") {
+      const q = r.value / k.value;
+      text = `한국(${fmtValue(ind, k.value)})의 <b class="num">${q >= 2 ? d3.format(",.1f")(q) + "배" : d3.format(".0%")(q)}</b>${q >= 2 ? "" : " 수준"}`;
+    }
     else {
       const d = r.value - k.value;
       text = Math.abs(d) < 0.05 ? `한국(${fmtValue(ind, k.value)})과 같음`
@@ -718,7 +742,7 @@ dl.slip dd { margin: 0; text-align: right; min-width: 0; overflow-wrap: anywhere
     const line = d3.line().defined(ok).x(p => x(p[0])).y(p => y(p[1]));
     const last = pts.filter(ok).pop();
     const kLast = kpts && kpts.length ? kpts[kpts.length - 1] : null;
-    const yFmt = y.domain()[1] >= 10000 ? d3.format("~s") : d3.format("~g");
+    const yFmt = ind.format === "count" ? koShort : y.domain()[1] >= 10000 ? d3.format("~s") : d3.format("~g");
     const xTicks = [years[0], ...x.ticks(4).filter(t => t - years[0] >= (years[1] - years[0]) * 0.18 && years[1] - t >= (years[1] - years[0]) * 0.18), years[1]];
     const nudge = kLast && Math.abs(y(last[1]) - y(kLast[1])) < 12 ? (last[1] < kLast[1] ? 14 : -6) : 4;
     el.innerHTML = `
@@ -773,7 +797,7 @@ dl.slip dd { margin: 0; text-align: right; min-width: 0; overflow-wrap: anywhere
     const selKey = selected ? selected.key : null;
     let html = rows.map(r => `
       <li><button type="button" data-key="${r.id}" ${r.id === selKey ? 'aria-current="true"' : ""}>
-        <span class="rk">${r.rank}</span><span class="nm">${nameKo(r.id)}</span><span class="v">${fmtValue(ind, r.value)}</span>
+        <span class="rk">${r.rank}</span><span class="nm">${nameKo(r.id)}</span><span class="v">${fmtShort(ind, r.value)}</span>
         <span class="bar" style="width:${Math.max(1, barPos(ind, r.value) * 100).toFixed(1)}%;background:${colors.seq[binOf(ind, r.value)]}"></span>
       </button></li>`).join("");
     if (nones.length) {
