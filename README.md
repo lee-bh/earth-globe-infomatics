@@ -7,7 +7,7 @@
 - **왼쪽 · 지표 목록**: 지표를 고르면 지구본 색, 범례, 순위표가 그 지표로 바뀝니다. 아래에 지표 설명·계산 방법·출처가 나옵니다.
 - **가운데 · 지구본**: 드래그로 회전, 스크롤/핀치로 확대(키보드: 방향키, `+`/`-`). 마우스를 올리면 툴팁, 누르면 오른쪽에 상세가 열립니다. 범례 구간에 마우스를 올리면 그 구간만 강조됩니다.
 - **오른쪽 · 세부 데이터**: 선택한 나라의 값·순위·한국 대비 비교·세부 항목, 시계열이 있는 지표는 추이 그래프(한국과 비교), 같은 나라의 다른 지표 값, 그리고 검색·지역 필터가 되는 순위표.
-- 주소 끝에 `#minimum-wage`, `#life-expectancy`, `#gdp-per-capita`, `#fertility`, `#population`, `#population-density`를 붙이면 해당 지표로 바로 열립니다.
+- 주소 끝에 `#minimum-wage`, `#life-expectancy`, `#gdp-per-capita`, `#fertility`, `#population`, `#population-density`, `#unemployment`, `#co2-per-capita`를 붙이면 해당 지표로 바로 열립니다.
 - 라이트/다크 모드, 휴대폰 화면 지원.
 
 ### 들어 있는 지표
@@ -20,6 +20,8 @@
 | 합계출산율 (1950–2023 추이) | 2023년 추정치 | 236개 국가·지역 | [UN World Population Prospects 2024](https://population.un.org/wpp/) |
 | 인구 (남·여, 2050·2100년 전망, 1950–2026 추이) | 2026년 (중위 추계) | 236개 국가·지역 | [UN World Population Prospects 2024](https://population.un.org/wpp/) |
 | 인구밀도 (km²당 명) | 2026년 | 215개 국가·지역 | UN 인구 ÷ [World Bank 육지 면적](https://data.worldbank.org/indicator/AG.LND.TOTL.K2) |
+| 실업률 (남·여, 1991–2025 추이) | 2025년 (ILO 모형 추정) | 186개 국가·지역 | [World Bank / ILO](https://data.worldbank.org/indicator/SL.UEM.TOTL.ZS) |
+| 1인당 CO2 배출량 (소비 기준 값, 1950–2024 추이) | 2024년 | 213개 국가·지역 | [Global Carbon Budget 2025](https://globalcarbonbudgetdata.org/) via [Our World in Data](https://github.com/owid/co2-data) |
 
 ### 실행
 
@@ -39,10 +41,12 @@
 | `data/fertility.csv`, `data/fertility-series.csv` | 합계출산율 최신값과 연도별 추이 (1950–2023) |
 | `data/population.csv`, `data/population-series.csv` | 인구 기준연도 값(남·여, 2050·2100년 전망)과 연도별 추이 (1950–2026) |
 | `data/population-density.csv` | 인구밀도 원본: 인구, 육지 면적(km²), 면적 기준 연도, 밀도 |
+| `data/unemployment.csv`, `data/unemployment-series.csv` | 실업률 최신값(전체·남·여)과 연도별 추이 (1991–2025) |
+| `data/co2-per-capita.csv`, `data/co2-per-capita-series.csv` | 1인당 CO2 최신값, 총배출량, 소비 기준 1인당 값과 연도별 추이 (1950–2024) |
 | `data/countries.js`, `data/indicators/*.js` | CSV에서 생성한 페이지용 데이터 (직접 수정하지 말 것) |
 | `data/world-50m.js` | Natural Earth 1:50m 국경 (world-atlas@2.0.2) |
 | `vendor/` | d3@7.9.0, topojson-client@3.1.0 |
-| `scripts/import_sources.py` | UN WPP 2024, 세계은행 GDP·인구·육지 면적, i18n-iso-countries에서 `countries.csv`와 모든 지표 CSV(최저임금 제외)를 다시 만듦 (사용법은 파일 머리말) |
+| `scripts/import_sources.py` | UN WPP 2024, 세계은행 GDP·인구·육지 면적·실업률, Our World in Data CO2, i18n-iso-countries에서 `countries.csv`와 모든 지표 CSV(최저임금 제외)를 다시 만듦 (사용법은 파일 머리말) |
 | `scripts/build_data.py` | CSV → `data/*.js` 생성 |
 | `scripts/build_standalone.py` | 모든 데이터를 넣은 단일 HTML 파일 생성 |
 
@@ -62,7 +66,7 @@ python3 scripts/build_data.py
    - 표시 형식: `prefix`, `suffix`, `bigUnit`, `decimals`
    - 색 구간: `thresholds`(5개 경계값 → 6구간), `binLabels`, `legendTitle`
    - 한국 비교 방식: `compare`(`"ratio"` 비율 / `"diff"` 차이), 값이 없는 나라 표시용 `noneLabel`
-   - 선택: `barScale: "log"`(값 차이가 큰 지표의 막대), `rankLabel`(순위표 제목 옆 설명), `seriesLabel`(추이 그래프 제목), `format: "count"`(사람 수를 "5,156만 명"처럼 표시)
+   - 선택: `barScale: "log"`(값 차이가 큰 지표의 막대), `rankLabel`(순위표 제목 옆 설명), `seriesLabel`(추이 그래프 제목), `format: "count"`(사람 수를 "5,156만 명"처럼 표시), `diffSuffix`(한국과의 차이 단위, 예: `"%p"`)
    - `method`(문단 목록), `sources`(`{name, url}` 목록)
    - `rows`: 나라 키별 `{status: "value" | "none", value, tip, details: [[이름, 값], ...], note, series: {start, values}}`
 3. `index.html`의 지표 `<script>` 목록에 `data/indicators/<id>.js`를 추가합니다.
@@ -86,12 +90,17 @@ python3 scripts/build_data.py
 
 **인구밀도**: 인구 지표와 같은 UN 2026년 인구를 세계은행 육지 면적(내수면 제외, 최신 연도)으로 나눴습니다. 세계은행에 면적이 없는 곳(대만 등)은 자료 없음입니다. 나라 전체 평균이라 사막·산지가 넓은 나라는 체감 밀도보다 낮게 나옵니다.
 
+**실업률**: 국제노동기구(ILO)가 나라별 조사 방식을 같은 기준으로 맞춘 모형 추정치(세계은행 SL.UEM.TOTL.ZS)입니다. 각국 공식 실업률과 다를 수 있고, 비공식 부문이 큰 나라는 낮게 나오는 경향이 있습니다. 한국과의 차이는 %p로 표시합니다.
+
+**1인당 CO2 배출량**: Global Carbon Budget 2025의 화석연료·시멘트 CO2(생산 기준)를 인구로 나눈 Our World in Data 값입니다. 토지 이용 변화와 다른 온실가스는 빠져 있고, 국제 항공·해운 연료는 어느 나라에도 들어가지 않습니다. 상세 카드에 무역을 반영한 소비 기준 값과 1990년 대비 변화를 함께 보여 줍니다.
+
 **기대수명**: UN WPP 2024 추정치를 그대로 사용합니다. 그해의 연령별 사망률이 평생 유지된다고 가정한 값이라, 전쟁·감염병이 있던 해에는 크게 떨어질 수 있습니다. 모나코·산마리노 같은 작은 국가와 해외 영토도 UN 집계에 포함되어 순위에 들어갑니다.
 
 ### 주요 출처
 
 - [UN World Population Prospects 2024](https://population.un.org/wpp/) via [PPgp/wpp2024](https://github.com/PPgp/wpp2024)
-- [World Bank Land area](https://data.worldbank.org/indicator/AG.LND.TOTL.K2) via [datasets/world-development-indicators](https://github.com/datasets/world-development-indicators)
+- [Global Carbon Budget 2025](https://globalcarbonbudgetdata.org/) via [owid/co2-data](https://github.com/owid/co2-data)
+- [World Bank Unemployment (modeled ILO estimate)](https://data.worldbank.org/indicator/SL.UEM.TOTL.ZS), [Land area](https://data.worldbank.org/indicator/AG.LND.TOTL.K2) via [datasets/world-development-indicators](https://github.com/datasets/world-development-indicators)
 - [World Bank GDP (current US$)](https://data.worldbank.org/indicator/NY.GDP.MKTP.CD), [Population](https://data.worldbank.org/indicator/SP.POP.TOTL) via [datasets/gdp](https://github.com/datasets/gdp), [datasets/population](https://github.com/datasets/population)
 - [Eurostat – Minimum wage statistics](https://ec.europa.eu/eurostat/statistics-explained/index.php?title=Minimum_wage_statistics)
 - [Trading Economics – Minimum wages by country](https://tradingeconomics.com/country-list/minimum-wages)

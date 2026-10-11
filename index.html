@@ -305,6 +305,8 @@ dl.slip dd { margin: 0; text-align: right; min-width: 0; overflow-wrap: anywhere
 <script src="data/indicators/fertility.js"></script>
 <script src="data/indicators/population.js"></script>
 <script src="data/indicators/population-density.js"></script>
+<script src="data/indicators/unemployment.js"></script>
+<script src="data/indicators/co2-per-capita.js"></script>
 <script>
 (function () {
   "use strict";
@@ -680,7 +682,7 @@ dl.slip dd { margin: 0; text-align: right; min-width: 0; overflow-wrap: anywhere
     else {
       const d = r.value - k.value;
       text = Math.abs(d) < 0.05 ? `한국(${fmtValue(ind, k.value)})과 같음`
-        : `한국(${fmtValue(ind, k.value)})보다 <b class="num">${fmtValue(ind, Math.abs(d))}</b> ${d > 0 ? "높음" : "낮음"}`;
+        : `한국(${fmtValue(ind, k.value)})보다 <b class="num">${ind.diffSuffix ? d3.format(`,.${ind.decimals}f`)(Math.abs(d)) + ind.diffSuffix : fmtValue(ind, Math.abs(d))}</b> ${d > 0 ? "높음" : "낮음"}`;
     }
     const lo = barLow(ind);
     return `<p class="compare">${text}</p>

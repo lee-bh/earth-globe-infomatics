@@ -447,6 +447,124 @@ def build_population_density(countries):
     })
 
 
+# ---------------------------------------------------------------- unemployment
+
+def build_unemployment(countries):
+    start, series = read_series("unemployment-series.csv")
+    rows = {}
+    years = []
+    for r in read_csv("unemployment.csv"):
+        cid, year = r["id"], int(r["year"])
+        years.append(year)
+        rate = float(r["unemployment_rate"])
+        s = series_obj(start, series.get(cid))
+        details = []
+        if r["male"]:
+            details.append(["남성", f"{float(r['male']):.1f}%"])
+        if r["female"]:
+            details.append(["여성", f"{float(r['female']):.1f}%"])
+        if s:
+            vals = [v for v in s["values"] if v is not None]
+            hi_i = max((i for i, v in enumerate(s["values"]) if v is not None), key=lambda i: s["values"][i])
+            details.append([f"{s['start']}년", f"{vals[0]:.1f}%"])
+            details.append(["최고치", f"{s['values'][hi_i]:.1f}% ({s['start'] + hi_i}년)"])
+        details.append(["기준 연도", f"{year}년 (ILO 모형 추정)"])
+        rows[cid] = {
+            "status": "value",
+            "value": round(rate, 2),
+            "tip": f"남 {float(r['male']):.1f}% · 여 {float(r['female']):.1f}%" if r["male"] and r["female"] else "",
+            "details": details,
+            "series": s,
+        }
+    year = max(years)
+    push_indicator({
+        "id": "unemployment",
+        "order": 7,
+        "group": "노동",
+        "name": "실업률",
+        "longName": "실업률",
+        "summary": "일할 의사와 능력이 있고 일자리를 찾고 있지만 일하지 못하는 사람이 경제활동인구에서 차지하는 비율",
+        "asOf": f"{year}년",
+        "unitLabel": "경제활동인구 대비 %",
+        "prefix": "", "suffix": "%", "diffSuffix": "%p", "bigUnit": "", "decimals": 1,
+        "compare": "diff",
+        "rankLabel": "높은 순",
+        "thresholds": [3, 5, 8, 12, 20],
+        "binLabels": ["~3%", "3–5%", "5–8%", "8–12%", "12–20%", "20%+"],
+        "legendTitle": "실업률 (경제활동인구 대비 %)",
+        "noneLabel": None,
+        "seriesLabel": "실업률 추이",
+        "method": [
+            f"국제노동기구(ILO)가 나라마다 다른 조사 방식을 같은 기준(15세 이상, ILO 실업 정의)으로 맞춘 모형 추정치이며, 세계은행 세계개발지표(SL.UEM.TOTL.ZS)로 배포된 {year}년 값입니다.",
+            "각국 통계청이 발표하는 공식 실업률과 다를 수 있습니다. 비공식 부문이 큰 나라는 일자리가 불안정해도 실업으로 잡히지 않아 실업률이 낮게 나오는 경우가 많습니다.",
+            "추이 그래프는 1991년부터입니다. 순위는 실업률이 높은 순입니다.",
+        ],
+        "sources": [
+            {"name": "World Bank – Unemployment, total (modeled ILO estimate)", "url": "https://data.worldbank.org/indicator/SL.UEM.TOTL.ZS"},
+            {"name": "ILOSTAT – ILO modelled estimates", "url": "https://ilostat.ilo.org/methods/concepts-and-definitions/ilo-modelled-estimates/"},
+            {"name": "datasets/world-development-indicators (세계은행 WDI 미러)", "url": "https://github.com/datasets/world-development-indicators"},
+        ],
+        "rows": rows,
+    })
+
+
+# ---------------------------------------------------------------- CO2 per capita
+
+def build_co2_per_capita(countries):
+    start, series = read_series("co2-per-capita-series.csv")
+    rows = {}
+    year = None
+    for r in read_csv("co2-per-capita.csv"):
+        cid, year = r["id"], int(r["year"])
+        pc, total = float(r["co2_per_capita_t"]), float(r["co2_mt"])
+        s = series_obj(start, series.get(cid))
+        details = [["총배출량", f"{total:,.1f}백만 톤" if total >= 1 else f"{total * 1000:,.0f}천 톤"]]
+        if r["consumption_co2_per_capita_t"]:
+            cons = float(r["consumption_co2_per_capita_t"])
+            details.append([f"소비 기준 1인당 ({r['consumption_year']}년)", f"{cons:.1f}t ({'수입' if cons > pc else '수출'}에 담긴 배출 반영)"])
+        if s:
+            v90 = s["values"][1990 - s["start"]] if s["start"] <= 1990 else None
+            if v90:
+                details.append(["1990년 대비", f"{(pc / v90 - 1) * 100:+.0f}% ({v90:.1f}t → {pc:.1f}t)"])
+        details.append(["기준 연도", f"{year}년"])
+        rows[cid] = {
+            "status": "value",
+            "value": round(pc, 3),
+            "tip": f"총 {total:,.0f}백만 톤" if total >= 1 else f"총 {total * 1000:,.0f}천 톤",
+            "details": details,
+            "series": s,
+        }
+    push_indicator({
+        "id": "co2-per-capita",
+        "order": 8,
+        "group": "환경",
+        "name": "1인당 CO2",
+        "longName": "1인당 이산화탄소 배출량",
+        "summary": "한 해 동안 화석연료 연소와 시멘트 생산에서 나온 이산화탄소(CO2)를 인구로 나눈 값",
+        "asOf": f"{year}년",
+        "unitLabel": "톤 / 1인",
+        "prefix": "", "suffix": "t", "bigUnit": "/ 1인", "decimals": 1,
+        "compare": "ratio",
+        "barScale": "log",
+        "rankLabel": "많은 순",
+        "thresholds": [1, 3, 6, 10, 15],
+        "binLabels": ["~1t", "1–3t", "3–6t", "6–10t", "10–15t", "15t+"],
+        "legendTitle": "1인당 CO2 배출량 (톤)",
+        "noneLabel": None,
+        "seriesLabel": "1인당 CO2 추이",
+        "method": [
+            f"글로벌 카본 프로젝트(Global Carbon Budget 2025)의 {year}년 국가별 화석연료·시멘트 CO2 배출량을 Our World in Data가 인구로 나눈 값입니다. 토지 이용 변화(산림 벌채 등)와 메탄 같은 다른 온실가스는 빠져 있습니다.",
+            "나라 안에서 배출된 양(생산 기준)입니다. 상세 카드의 소비 기준 값은 수입품을 만들 때 다른 나라에서 나온 배출을 더하고 수출품 몫을 뺀 것입니다.",
+            "국제 항공·해운 연료는 어느 나라에도 들어가지 않습니다. 산유국과 인구가 적은 나라는 1인당 값이 크게 나옵니다. 순위표 막대는 로그 눈금입니다.",
+        ],
+        "sources": [
+            {"name": "Global Carbon Budget 2025 (Global Carbon Project)", "url": "https://globalcarbonbudgetdata.org/"},
+            {"name": "Our World in Data – CO2 and Greenhouse Gas Emissions", "url": "https://github.com/owid/co2-data"},
+        ],
+        "rows": rows,
+    })
+
+
 def main():
     countries = build_countries()
     build_minimum_wage(countries)
@@ -455,6 +573,8 @@ def main():
     build_fertility(countries)
     build_population(countries)
     build_population_density(countries)
+    build_unemployment(countries)
+    build_co2_per_capita(countries)
 
     if len(sys.argv) > 1:
         topo = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))

@@ -9,9 +9,11 @@ Usage:
     npm pack i18n-iso-countries@7.14.0 && tar xzf i18n-iso-countries-7.14.0.tgz
     git clone --depth 1 https://github.com/datasets/gdp          # World Bank GDP (current US$), refreshed monthly
     git clone --depth 1 https://github.com/datasets/population   # World Bank population, refreshed monthly
-    git clone --depth 1 https://github.com/datasets/world-development-indicators   # World Bank WDI mirror (land area)
+    git clone --depth 1 https://github.com/datasets/world-development-indicators   # World Bank WDI mirror (land area, unemployment)
+    git clone --depth 1 https://github.com/owid/co2-data        # Our World in Data CO2 (Global Carbon Budget)
     python3 scripts/import_sources.py --wpp path/to/wpp2024 --i18n path/to/package \
-        --gdp path/to/gdp --population path/to/population --wdi path/to/world-development-indicators
+        --gdp path/to/gdp --population path/to/population --wdi path/to/world-development-indicators \
+        --co2 path/to/co2-data
 
 Writes:
     data/countries.csv               id, iso3, name_ko, name_en, region
@@ -24,6 +26,10 @@ Writes:
     data/population.csv              UN population for the reference year (total / male / female) and 2050 / 2100 projections
     data/population-series.csv       UN population for every year 1950 to the reference year
     data/population-density.csv      reference-year UN population ÷ World Bank land area (km²)
+    data/unemployment.csv            latest ILO modeled unemployment rate (total / male / female)
+    data/unemployment-series.csv     total unemployment rate for every available year
+    data/co2-per-capita.csv          latest fossil CO2 per capita, total, and consumption-based per capita
+    data/co2-per-capita-series.csv   CO2 per capita for every year since 1950 (blank when missing)
 """
 import argparse
 import csv
@@ -83,6 +89,7 @@ def main():
     ap.add_argument("--gdp", required=True, type=Path)
     ap.add_argument("--population", required=True, type=Path)
     ap.add_argument("--wdi", required=True, type=Path)
+    ap.add_argument("--co2", required=True, type=Path)
     a = ap.parse_args()
 
     with (a.wpp / "data" / "UNlocations.txt").open(encoding="utf-8") as f:
@@ -135,6 +142,8 @@ def main():
     import_fertility(a.wpp, country_ids)
     import_gdp_per_capita(a.gdp, a.population, countries)
     import_population(a.wpp, country_ids, countries, a.wdi)
+    import_unemployment(a.wdi, countries)
+    import_co2(a.co2, countries)
 
 
 def write_series(path, series, years, fmt):
@@ -246,6 +255,71 @@ def import_population(wpp, country_ids, countries, wdi):
                 pop = total[cid, POP_YEAR]
                 w.writerow([cid, POP_YEAR, f"{pop:.0f}", f"{land[cid][1]:.2f}".rstrip("0").rstrip("."), land[cid][0], f"{pop / land[cid][1]:.2f}"])
     print(f"population: {len(ids)} countries ({POP_YEAR}); density: {sum(1 for c in ids if c in land)} with land area")
+
+
+
+def read_wdi(wdi, code, by_iso):
+    """World Bank WDI mirror CSV -> {country id: {year: value}}."""
+    out = {}
+    with (wdi / "indicators" / code / "data.csv").open(encoding="utf-8") as f:
+        for r in csv.DictReader(f):
+            cid = by_iso.get(r["Country Code"])
+            if cid and r["Value"]:
+                out.setdefault(cid, {})[int(r["Year"])] = float(r["Value"])
+    return out
+
+
+def import_unemployment(wdi, countries):
+    by_iso = {c["iso3"]: c["id"] for c in countries if c["iso3"]}
+    total = read_wdi(wdi, "sl.uem.totl.zs", by_iso)
+    male = read_wdi(wdi, "sl.uem.totl.ma.zs", by_iso)
+    female = read_wdi(wdi, "sl.uem.totl.fe.zs", by_iso)
+    with (DATA / "unemployment.csv").open("w", encoding="utf-8", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["id", "year", "unemployment_rate", "male", "female"])
+        for cid in sorted(total):
+            y = max(total[cid])
+            w.writerow([cid, y, f"{total[cid][y]:.2f}",
+                        f"{male[cid][y]:.2f}" if y in male.get(cid, {}) else "",
+                        f"{female[cid][y]:.2f}" if y in female.get(cid, {}) else ""])
+    years = list(range(min(min(v) for v in total.values()), max(max(v) for v in total.values()) + 1))
+    write_series(DATA / "unemployment-series.csv", total, years, lambda v: f"{v:.2f}")
+    print(f"unemployment: {len(total)} countries, {years[0]}-{years[-1]}")
+
+
+def import_co2(co2_repo, countries):
+    by_iso = {c["iso3"]: c["id"] for c in countries if c["iso3"]}
+    by_iso["OWID_KOS"] = "412"  # Our World in Data's code for Kosovo
+    per_capita, total, consumption = {}, {}, {}
+    with (co2_repo / "owid-co2-data.csv").open(encoding="utf-8") as f:
+        for r in csv.DictReader(f):
+            cid = by_iso.get(r["iso_code"])
+            if not cid:
+                continue
+            y = int(r["year"])
+            if r["co2_per_capita"]:
+                per_capita.setdefault(cid, {})[y] = float(r["co2_per_capita"])
+            if r["co2"]:
+                total.setdefault(cid, {})[y] = float(r["co2"])
+            if r["consumption_co2_per_capita"]:
+                consumption.setdefault(cid, {})[y] = float(r["consumption_co2_per_capita"])
+    latest = max(max(v) for v in per_capita.values())
+    with (DATA / "co2-per-capita.csv").open("w", encoding="utf-8", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["id", "year", "co2_per_capita_t", "co2_mt", "consumption_co2_per_capita_t", "consumption_year"])
+        n = 0
+        for cid in sorted(per_capita):
+            if latest not in per_capita[cid]:
+                continue
+            c = consumption.get(cid, {})
+            cy = max(c) if c else ""
+            w.writerow([cid, latest, f"{per_capita[cid][latest]:.3f}", f"{total[cid][latest]:.3f}",
+                        f"{c[cy]:.3f}" if c else "", cy])
+            n += 1
+    years = list(range(1950, latest + 1))
+    write_series(DATA / "co2-per-capita-series.csv", {c: v for c, v in per_capita.items() if latest in v}, years,
+                 lambda v: f"{v:.3f}")
+    print(f"co2 per capita: {n} countries ({latest})")
 
 
 if __name__ == "__main__":
