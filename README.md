@@ -1,14 +1,21 @@
 # earth-globe-infomatics
 
-## 세계 최저임금 지구본
+## 세계 지표 지구본
 
-나라별 법정 최저임금을 월 환산 미국 달러로 바꿔 3D 지구본 위에 색으로 표시합니다.
+세계 각국의 지표를 3D 지구본 위에 색으로 칠해 비교하는 페이지입니다.
 
-- **드래그**로 지구본 회전, **스크롤/핀치**로 확대·축소 (키보드: 방향키, `+`/`-`)
-- 나라에 마우스를 올리면 툴팁, 누르면 현지 통화 금액·월 환산 금액·적용 환율·한국 대비 비율을 보여 줍니다
-- 오른쪽 순위표에서 검색·지역 필터, 항목을 누르면 지구본이 그 나라로 돌아갑니다
-- 범례 구간에 마우스를 올리면 그 구간의 나라만 강조됩니다
-- 라이트/다크 모드 지원
+- **왼쪽 · 지표 목록**: 지표를 고르면 지구본 색, 범례, 순위표가 그 지표로 바뀝니다. 아래에 지표 설명·계산 방법·출처가 나옵니다.
+- **가운데 · 지구본**: 드래그로 회전, 스크롤/핀치로 확대(키보드: 방향키, `+`/`-`). 마우스를 올리면 툴팁, 누르면 오른쪽에 상세가 열립니다. 범례 구간에 마우스를 올리면 그 구간만 강조됩니다.
+- **오른쪽 · 세부 데이터**: 선택한 나라의 값·순위·한국 대비 비교·세부 항목, 시계열이 있는 지표는 추이 그래프(한국과 비교), 같은 나라의 다른 지표 값, 그리고 검색·지역 필터가 되는 순위표.
+- 주소 끝에 `#minimum-wage`, `#life-expectancy`를 붙이면 해당 지표로 바로 열립니다.
+- 라이트/다크 모드, 휴대폰 화면 지원.
+
+### 들어 있는 지표
+
+| 지표 | 기준 | 범위 | 출처 |
+|---|---|---|---|
+| 최저임금 (월, 미국 달러) | 2026년 10월 | 101개국 + 법정 최저임금 없는 15개국 | Eurostat, Trading Economics 등 (아래 참고) |
+| 기대수명 (출생 시, 남녀 전체·남·여, 1950–2023 추이) | 2023년 추정치 | 236개 국가·지역 | [UN World Population Prospects 2024](https://population.un.org/wpp/) |
 
 ### 실행
 
@@ -18,46 +25,59 @@
 
 | 경로 | 내용 |
 |---|---|
-| `index.html` | 지구본 페이지 (D3 정사영 투영 + Canvas 렌더링) |
-| `data/minimum-wage.csv` | **원본 데이터.** 나라별 법정 금액, 통화, 단위(시/일/주/월), 월 환산 계수, 시행 시점, 환율, 출처, 비고 |
-| `data/minimum-wage.js` | CSV에서 생성한 페이지용 데이터 (직접 수정하지 말 것) |
+| `index.html` | 페이지 (D3 정사영 투영 + Canvas 지구본) |
+| `data/countries.csv` | 나라 목록: UN M49 코드, ISO3, 한국어·영어 이름, 지역 |
+| `data/minimum-wage.csv` | 최저임금 원본: 법정 금액, 통화, 단위, 월 환산 계수, 시행 시점, 환율, 출처, 비고 |
+| `data/life-expectancy.csv` | 기대수명 원본: 최신 연도 남녀 전체·남·여 |
+| `data/life-expectancy-series.csv` | 기대수명 연도별 추이 (1950–2023) |
+| `data/countries.js`, `data/indicators/*.js` | CSV에서 생성한 페이지용 데이터 (직접 수정하지 말 것) |
 | `data/world-50m.js` | Natural Earth 1:50m 국경 (world-atlas@2.0.2) |
 | `vendor/` | d3@7.9.0, topojson-client@3.1.0 |
-| `scripts/build_data.py` | CSV → `data/minimum-wage.js` 생성 |
-| `scripts/build_standalone.py` | 데이터를 모두 넣은 단일 HTML 파일 생성 |
+| `scripts/import_sources.py` | UN WPP 2024·i18n-iso-countries에서 `countries.csv`와 기대수명 CSV를 다시 만듦 |
+| `scripts/build_data.py` | CSV → `data/*.js` 생성 |
+| `scripts/build_standalone.py` | 모든 데이터를 넣은 단일 HTML 파일 생성 |
 
-데이터를 고친 뒤에는 다음을 실행하세요.
+CSV를 고친 뒤에는 다음을 실행하세요.
 
 ```sh
 python3 scripts/build_data.py
 ```
 
+나라 이름과 지역은 `data/countries.csv` 한 곳에서만 가져옵니다(`minimum-wage.csv`의 이름·지역 열은 읽기 편하라고 남겨 둔 것입니다). 나라 키는 UN M49 숫자 코드로, 지도 파일의 국가 id와 같습니다. 코소보는 지도 파일에 id가 없어 이름으로 연결하고 UN 코드 412를 씁니다.
+
+### 지표 추가하기
+
+1. `data/`에 원본 CSV를 넣습니다 (나라 키는 `countries.csv`의 `id`).
+2. `scripts/build_data.py`에 `build_<지표>()` 함수를 추가해 `push_indicator({...})`를 호출합니다. 넣을 항목:
+   - `id`, `order`, `group`, `name`, `longName`, `summary`, `asOf`, `unitLabel`
+   - 표시 형식: `prefix`, `suffix`, `bigUnit`, `decimals`
+   - 색 구간: `thresholds`(5개 경계값 → 6구간), `binLabels`, `legendTitle`
+   - 한국 비교 방식: `compare`(`"ratio"` 비율 / `"diff"` 차이), 값이 없는 나라 표시용 `noneLabel`
+   - `method`(문단 목록), `sources`(`{name, url}` 목록)
+   - `rows`: 나라 키별 `{status: "value" | "none", value, tip, details: [[이름, 값], ...], note, series: {start, values}}`
+3. `index.html`의 지표 `<script>` 목록에 `data/indicators/<id>.js`를 추가합니다.
+
+페이지는 지표 목록, 범례, 순위, 상세 카드, 추이 그래프를 이 설명만 보고 그립니다.
+
 ### 계산 방법
 
-```
-월 환산(현지 통화) = 법정 금액 × 월 환산 계수
-월 환산(USD)       = 월 환산(현지 통화) ÷ 환율(1달러당 현지 통화)
-```
+**최저임금**: `월 환산(USD) = 법정 금액 × 월 환산 계수 ÷ 환율(1달러당 현지 통화)`
+- 시급은 주 40시간 × 52주 ÷ 12 ≈ 173.33시간 (한국 209시간, 호주 주 38시간, 파나마 주 48시간), 일급은 월 26일(멕시코 30.4일)
+- 유럽연합 국가는 Eurostat의 월 환산 유로 금액을 그대로 사용
+- 지역별로 다른 나라는 수도 또는 최고 등급 지역 기준, 일본은 전국 가중평균, 미국·캐나다는 연방 기준
+- 환율은 2026년 10월 초 기준(일부 통화는 근사치), 세전 명목 금액(구매력 미반영)
+- `source`가 `공개 보도 종합(원문 미확인)`인 행은 공식 고시를 직접 확인하지 못한 값
 
-- 시급: 주 40시간 × 52주 ÷ 12 ≈ 173.33시간 (한국 209시간, 호주 38시간 기준 164.67시간, 파나마 48시간 기준 208시간)
-- 일급: 월 26일 (멕시코 30.4일)
-- 유럽연합 국가는 Eurostat의 월 환산 유로 금액(연 14회 지급 국가는 12개월로 환산된 값)을 그대로 씁니다
-- 환율은 2026년 10월 초 기준(ECB 기준환율, Fed H.10 등)이며 일부 통화는 근사치입니다
-- 세전 명목 금액이며 구매력(PPP)은 반영하지 않았습니다
-
-### 데이터에 대한 주의
-
-- 기준 시점: 2026년 10월에 확인 가능한 최신 법정 최저임금 (나라마다 시행일이 다르며 CSV `effective` 열에 기록)
-- 지역별로 다른 나라는 수도 또는 최고 등급 지역 기준(중국 상하이, 인도네시아 자카르타, 베트남 1지역, 태국 방콕, 필리핀 NCR), 일본은 전국 가중평균, 미국·캐나다는 연방 기준입니다
-- `source`가 `공개 보도 종합(원문 미확인)`인 행은 공식 고시를 직접 확인하지 못한 값입니다. 정책 자료로 쓰려면 각국 노동부 고시와 대조하세요
-- 법정 최저임금이 없는 나라(북유럽, 스위스, 이탈리아, 오스트리아, 싱가포르, 걸프 국가 일부 등)는 빗금으로 표시합니다
+**기대수명**: UN WPP 2024 추정치를 그대로 사용합니다. 그해의 연령별 사망률이 평생 유지된다고 가정한 값이라, 전쟁·감염병이 있던 해에는 크게 떨어질 수 있습니다. 모나코·산마리노 같은 작은 국가와 해외 영토도 UN 집계에 포함되어 순위에 들어갑니다.
 
 ### 주요 출처
 
+- [UN World Population Prospects 2024](https://population.un.org/wpp/) via [PPgp/wpp2024](https://github.com/PPgp/wpp2024)
 - [Eurostat – Minimum wage statistics](https://ec.europa.eu/eurostat/statistics-explained/index.php?title=Minimum_wage_statistics)
 - [Trading Economics – Minimum wages by country](https://tradingeconomics.com/country-list/minimum-wages)
 - [IndexBox – Europe minimum wage July 2026](https://www.indexbox.io/blog/minimum-wage-in-europe-july-2026-rankings-and-inflation-impact/)
 - [Rivermate – Minimum wage Latin America 2026](https://rivermate.com/blog/minimum-wage-latin-america-2026)
 - [Africa HR – Minimum wage across Africa](https://africa-hr.com/blog/minimum-wage-across-africa/)
 - [ECB euro reference rates](https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html), [Federal Reserve H.10](https://www.federalreserve.gov/releases/h10/current/)
+- 나라 이름: [i18n-iso-countries](https://github.com/michaelwittig/node-i18n-iso-countries) (일부 표기 수정)
 - 지도: [Natural Earth](https://www.naturalearthdata.com/) via [world-atlas](https://github.com/topojson/world-atlas)

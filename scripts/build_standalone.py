@@ -1,7 +1,7 @@
 """Bundle index.html into one self-contained HTML file.
 
 Usage:
-    python3 scripts/build_standalone.py dist/minimum-wage-globe.html [--fragment]
+    python3 scripts/build_standalone.py dist/world-indicators-globe.html [--fragment]
 
 --fragment drops the <!doctype>/<html>/<head>/<body> wrapper and meta tags, for
 hosts (such as Claude Artifacts) that add their own document skeleton.
@@ -23,7 +23,7 @@ CDN = {
 def main():
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
     fragment = "--fragment" in sys.argv
-    out = Path(args[0] if args else ROOT / "dist" / "minimum-wage-globe.html")
+    out = Path(args[0] if args else ROOT / "dist" / "world-indicators-globe.html")
     html = (ROOT / "index.html").read_text(encoding="utf-8")
 
     def swap(m):

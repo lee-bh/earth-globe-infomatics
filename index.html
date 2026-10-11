@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>세계 최저임금 지구본</title>
+<title>세계 지표 지구본</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
 <style>
-/* Layout: globe stage on the left, one country's payslip-style detail + ranked ledger on the right; stacks on phones. */
+/* Layout: indicator index (left) · globe (center) · country sheet + ranked ledger (right); collapses to chips + stacked columns on narrow screens. */
 :root {
   --bg: #f3f5f8;
   --panel: #fbfcfd;
@@ -24,6 +24,8 @@
   --border: #f3f5f8;
   --focus: #0e1726;
   --accent: #2a78d6;
+  --accent-soft: rgba(42, 120, 214, 0.10);
+  --ref: #8c95a3;
   --seq-1: #cde2fb; --seq-2: #9ec5f4; --seq-3: #6da7ec; --seq-4: #3987e5; --seq-5: #1c5cab; --seq-6: #0d366b;
   --shade: rgba(14, 23, 38, 0.18);
   --shine: rgba(255, 255, 255, 0.35);
@@ -37,6 +39,7 @@
     --bg: #0b111b; --panel: #111926; --ink: #edf1f6; --ink-2: #b4bdc9; --ink-3: #8b95a3; --rule: #223044;
     --ocean: #142033; --ocean-edge: #22324a; --land-none: #2c3542; --hatch: #6b7584;
     --graticule: rgba(160, 190, 230, 0.08); --border: #0b111b; --focus: #edf1f6; --accent: #5598e7;
+    --accent-soft: rgba(85, 152, 231, 0.14); --ref: #6b7584;
     --seq-1: #143a6b; --seq-2: #1c5cab; --seq-3: #2a78d6; --seq-4: #5598e7; --seq-5: #86b6ef; --seq-6: #cde2fb;
     --shade: rgba(0, 0, 0, 0.35); --shine: rgba(255, 255, 255, 0.07);
     --tip-bg: #edf1f6; --tip-ink: #0b111b;
@@ -47,6 +50,7 @@
   --bg: #0b111b; --panel: #111926; --ink: #edf1f6; --ink-2: #b4bdc9; --ink-3: #8b95a3; --rule: #223044;
   --ocean: #142033; --ocean-edge: #22324a; --land-none: #2c3542; --hatch: #6b7584;
   --graticule: rgba(160, 190, 230, 0.08); --border: #0b111b; --focus: #edf1f6; --accent: #5598e7;
+  --accent-soft: rgba(85, 152, 231, 0.14); --ref: #6b7584;
   --seq-1: #143a6b; --seq-2: #1c5cab; --seq-3: #2a78d6; --seq-4: #5598e7; --seq-5: #86b6ef; --seq-6: #cde2fb;
   --shade: rgba(0, 0, 0, 0.35); --shine: rgba(255, 255, 255, 0.07);
   --tip-bg: #edf1f6; --tip-ink: #0b111b;
@@ -54,6 +58,7 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html, body { margin: 0; }
 body {
   background: var(--bg);
@@ -64,181 +69,194 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 .wrap {
-  max-width: 1320px;
+  max-width: 1560px;
   margin: 0 auto;
-  padding-inline: clamp(16px, 3vw, 36px);
-  padding-block: 28px 40px;
+  padding-inline: clamp(16px, 2.4vw, 32px);
+  padding-block: 22px 40px;
 }
 .num { font-family: var(--font-num); font-variant-numeric: tabular-nums; }
+a { color: var(--accent); }
 
 /* Header */
-header.top { display: grid; gap: 6px; margin-bottom: 20px; }
-.eyebrow {
-  font-size: 12px; letter-spacing: 0.08em; color: var(--ink-3); text-transform: uppercase;
-  display: flex; flex-wrap: wrap; gap: 6px 14px;
-}
-h1 {
-  margin: 0; font-size: clamp(26px, 3.2vw, 38px); line-height: 1.15; font-weight: 700;
-  letter-spacing: -0.02em; text-wrap: balance;
-}
-.lede { margin: 0; color: var(--ink-2); max-width: 62ch; }
+header.top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; margin-bottom: 18px; }
+h1 { margin: 0; font-size: clamp(22px, 2.4vw, 28px); line-height: 1.2; font-weight: 700; letter-spacing: -0.02em; }
+.tagline { margin: 0; color: var(--ink-3); font-size: 14px; }
 
-/* Main grid */
+/* Three columns */
 .grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.55fr) minmax(320px, 1fr);
+  grid-template-columns: 250px minmax(0, 1fr) 380px;
   gap: 20px;
   align-items: start;
 }
-@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 1180px) {
+  .grid { grid-template-columns: minmax(0, 1fr) 360px; }
+  .indicators { grid-column: 1 / -1; }
+}
+@media (max-width: 860px) { .grid { grid-template-columns: minmax(0, 1fr); } }
 
-/* Globe stage */
+.card { background: var(--panel); border: 1px solid var(--rule); border-radius: 12px; }
+.label { font-size: 12px; letter-spacing: 0.06em; color: var(--ink-3); }
+
+/* Left: indicator index */
+.indicators { display: grid; gap: 16px; min-width: 0; align-content: start; }
+.ind-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.ind-btn {
+  width: 100%; text-align: left; cursor: pointer;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 8px; align-items: baseline;
+  padding: 12px 14px; border-radius: 10px;
+  background: var(--panel); border: 1px solid var(--rule); color: var(--ink);
+  font: 15px var(--font-body);
+}
+.ind-btn:hover { border-color: var(--ink-3); }
+.ind-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ind-btn[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
+.ind-name { font-weight: 600; }
+.ind-group { font-size: 11px; color: var(--ink-3); border: 1px solid var(--rule); border-radius: 999px; padding: 1px 7px; }
+.ind-meta { grid-column: 1 / -1; font-size: 12px; color: var(--ink-3); }
+.ind-ramp { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(6, 1fr); gap: 1px; margin-top: 6px; height: 4px; border-radius: 2px; overflow: hidden; }
+
+.about { padding: 16px; display: grid; gap: 10px; font-size: 13px; color: var(--ink-2); }
+.about h2 { margin: 0; font-size: 15px; color: var(--ink); }
+.about p { margin: 0; }
+.about ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.about h3 { margin: 4px 0 0; font-size: 12px; color: var(--ink-3); font-weight: 500; letter-spacing: 0.06em; }
+
+@media (max-width: 1180px) {
+  .ind-list { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+  .about { display: none; }
+  .about.inline { display: grid; grid-column: 1 / -1; }
+}
+
+/* Center: globe */
 .stage { position: relative; min-width: 0; }
-.globe-box {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  max-height: 78vh;
-  margin-inline: auto;
-}
-canvas#globe {
-  display: block; width: 100%; height: 100%;
-  cursor: grab; touch-action: none; outline: none; border-radius: 50%;
-}
+.stage-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; margin-bottom: 6px; }
+.stage-head h2 { margin: 0; font-size: 20px; letter-spacing: -0.01em; }
+.stage-head .label { font-family: var(--font-num); letter-spacing: 0.02em; }
+.globe-box { position: relative; width: 100%; aspect-ratio: 1 / 1; max-height: 76vh; margin-inline: auto; }
+canvas#globe { display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; outline: none; border-radius: 50%; }
 canvas#globe.dragging { cursor: grabbing; }
 canvas#globe:focus-visible { box-shadow: 0 0 0 3px var(--accent); }
-
-.controls {
-  position: absolute; top: 4px; right: 4px;
-  display: flex; flex-direction: column; gap: 6px;
-}
+.controls { position: absolute; top: 4px; right: 4px; display: flex; flex-direction: column; gap: 6px; }
 .ctrl {
-  width: 36px; height: 36px; border-radius: 8px;
-  border: 1px solid var(--rule); background: var(--panel); color: var(--ink);
-  font: 500 16px/1 var(--font-num); cursor: pointer;
-  display: grid; place-items: center;
+  width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--rule); background: var(--panel); color: var(--ink);
+  font: 500 16px/1 var(--font-num); cursor: pointer; display: grid; place-items: center;
 }
 .ctrl:hover { border-color: var(--ink-3); }
 .ctrl:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .ctrl svg { width: 16px; height: 16px; }
 .ctrl[aria-pressed="true"] { background: var(--ink); color: var(--panel); border-color: var(--ink); }
+.hint { position: absolute; left: 4px; top: 4px; font-size: 12px; color: var(--ink-3); background: color-mix(in srgb, var(--bg) 80%, transparent); padding: 2px 8px; border-radius: 6px; }
 
-.hint {
-  position: absolute; left: 4px; top: 4px; font-size: 12px; color: var(--ink-3);
-  background: color-mix(in srgb, var(--bg) 80%, transparent); padding: 2px 8px; border-radius: 6px;
-}
-
-/* Legend */
-.legend { margin-top: 14px; display: grid; gap: 8px; }
-.legend-title { font-size: 12px; color: var(--ink-3); letter-spacing: 0.04em; }
+.legend { margin-top: 12px; display: grid; gap: 8px; }
 .legend-row { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 2px; }
-.lg-item {
-  display: grid; gap: 4px; min-width: 0;
-  border: 0; background: none; padding: 0; text-align: left; color: var(--ink-2); cursor: default;
-  font: 12px/1.2 var(--font-num); white-space: nowrap;
-}
+.lg-item { display: grid; gap: 4px; min-width: 0; border: 0; background: none; padding: 0; text-align: left; color: var(--ink-2); cursor: default; font: 12px/1.2 var(--font-num); white-space: nowrap; }
+.lg-item:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 @media (max-width: 520px) { .lg-item { font-size: 10.5px; } }
 .lg-swatch { height: 12px; border-radius: 2px; }
-
 .lg-extra { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 12px; color: var(--ink-2); }
 .lg-extra span { display: inline-flex; align-items: center; gap: 6px; }
 .chip { width: 14px; height: 12px; border-radius: 2px; display: inline-block; }
-.chip.none {
-  background: repeating-linear-gradient(135deg, var(--hatch) 0 1.5px, var(--land-none) 1.5px 5px);
-}
+.chip.none { background: repeating-linear-gradient(135deg, var(--hatch) 0 1.5px, var(--land-none) 1.5px 5px); }
 .chip.nodata { background: var(--land-none); }
 
-/* Side panel */
-aside { display: grid; gap: 16px; min-width: 0; }
-.card {
-  background: var(--panel); border: 1px solid var(--rule); border-radius: 12px;
-  padding: 18px 18px 16px;
-}
+/* Right: country sheet + ledger */
+aside.side { display: grid; gap: 16px; min-width: 0; }
+.sheet { padding: 18px 18px 16px; }
 .detail-head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
 .detail-name { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
 .detail-en { color: var(--ink-3); font-size: 13px; }
-.rank-pill {
-  font: 500 12px/1 var(--font-num); color: var(--ink-2);
-  border: 1px solid var(--rule); border-radius: 999px; padding: 5px 9px; white-space: nowrap;
-}
+.rank-pill { font: 500 12px/1 var(--font-num); color: var(--ink-2); border: 1px solid var(--rule); border-radius: 999px; padding: 5px 9px; white-space: nowrap; }
 .big { margin: 14px 0 2px; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
-.big .val { font: 500 clamp(30px, 4vw, 40px)/1 var(--font-num); letter-spacing: -0.02em; }
+.big .val { font: 500 clamp(30px, 3.4vw, 40px)/1 var(--font-num); letter-spacing: -0.02em; }
 .big .unit { color: var(--ink-3); font-size: 14px; }
 .compare { color: var(--ink-2); font-size: 13px; margin: 6px 0 0; }
-.compare-bar { position: relative; height: 6px; background: var(--rule); border-radius: 3px; margin-top: 8px; overflow: hidden; }
+.compare-bar { position: relative; height: 6px; background: var(--rule); border-radius: 3px; margin-top: 8px; }
 .compare-bar i { position: absolute; inset: 0 auto 0 0; border-radius: 3px; background: var(--accent); }
 .compare-bar b { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--ink); }
-
+.compare-scale { display: flex; justify-content: space-between; font: 11px var(--font-num); color: var(--ink-3); margin-top: 4px; }
 dl.slip { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; margin: 16px 0 0; padding-top: 14px; border-top: 1px dashed var(--rule); font-size: 13px; }
 dl.slip dt { color: var(--ink-3); }
 dl.slip dd { margin: 0; text-align: right; min-width: 0; overflow-wrap: anywhere; }
 .note { margin: 12px 0 0; font-size: 13px; color: var(--ink-2); }
 .status-none { margin: 14px 0 0; font-size: 15px; color: var(--ink-2); }
 
-/* Ledger */
-.ledger-head { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
-.ledger-head h2 { margin: 0; font-size: 15px; font-weight: 600; flex: 1 1 auto; }
-.field {
-  height: 34px; border-radius: 8px; border: 1px solid var(--rule); background: var(--bg); color: var(--ink);
-  font: 14px var(--font-body); padding: 0 10px; min-width: 0;
+.trend { margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--rule); }
+.trend-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 13px; }
+.trend-head .label { letter-spacing: 0.02em; }
+.trend-read { font: 12px var(--font-num); color: var(--ink-2); min-height: 1.4em; }
+.trend svg { display: block; width: 100%; height: 132px; overflow: visible; touch-action: pan-y; }
+.trend .axis text { fill: var(--ink-3); font: 10.5px var(--font-num); }
+.trend .grid-line { stroke: var(--rule); stroke-width: 1; }
+.trend .line-main { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.trend .line-ref { fill: none; stroke: var(--ref); stroke-width: 1.5; stroke-dasharray: 3 3; }
+.trend .end-label { fill: var(--ink-2); font: 11px var(--font-body); }
+.trend .cross { stroke: var(--ink-3); stroke-width: 1; }
+.trend .dot { fill: var(--accent); stroke: var(--panel); stroke-width: 2; }
+
+.others { margin-top: 16px; padding-top: 12px; border-top: 1px dashed var(--rule); }
+.others ul { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 2px; }
+.others button {
+  width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; align-items: baseline;
+  padding: 6px 6px; border: 0; border-radius: 6px; background: none; color: var(--ink); cursor: pointer; text-align: left; font: 13px var(--font-body);
 }
+.others button:hover { background: var(--accent-soft); }
+.others button:focus-visible { outline: 2px solid var(--accent); }
+.others .ov { font: 13px var(--font-num); }
+.others .orank { font: 11px var(--font-num); color: var(--ink-3); min-width: 56px; text-align: right; }
+
+.ledger-card { padding: 16px 16px 8px; }
+.ledger-head { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+.ledger-head h2 { margin: 0; font-size: 15px; font-weight: 600; flex: 1 1 100%; }
+.field { height: 34px; border-radius: 8px; border: 1px solid var(--rule); background: var(--bg); color: var(--ink); font: 14px var(--font-body); padding: 0 10px; min-width: 0; }
 .field:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 #search { flex: 1 1 140px; }
 #region { flex: 0 0 auto; }
-.ledger { list-style: none; margin: 0; padding: 0; max-height: 520px; overflow-y: auto; border-top: 1px solid var(--rule); }
+.ledger { list-style: none; margin: 0; padding: 0; max-height: 460px; overflow-y: auto; border-top: 1px solid var(--rule); }
 .ledger li { border-bottom: 1px solid var(--rule); }
 .ledger button {
-  width: 100%; display: grid; grid-template-columns: 30px minmax(0, 1fr) 84px; gap: 4px 10px; align-items: center;
-  padding: 8px 4px; border: 0; background: none; color: var(--ink); text-align: left; cursor: pointer;
-  font: 14px var(--font-body);
+  width: 100%; display: grid; grid-template-columns: 32px minmax(0, 1fr) 84px; gap: 4px 10px; align-items: center;
+  padding: 8px 4px; border: 0; background: none; color: var(--ink); text-align: left; cursor: pointer; font: 14px var(--font-body);
 }
-.ledger button:hover { background: color-mix(in srgb, var(--accent) 7%, transparent); }
+.ledger button:hover { background: var(--accent-soft); }
 .ledger button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
-.ledger button[aria-current="true"] { background: color-mix(in srgb, var(--accent) 13%, transparent); }
+.ledger button[aria-current="true"] { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
 .ledger .rk { color: var(--ink-3); font: 12px var(--font-num); text-align: right; }
 .ledger .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ledger .v { text-align: right; font: 13px var(--font-num); }
 .ledger .bar { grid-column: 2 / 4; height: 4px; border-radius: 0 2px 2px 0; }
-.ledger .sub { grid-column: 2 / 4; font-size: 12px; color: var(--ink-3); }
 .ledger-group { padding: 12px 4px 4px; font-size: 12px; color: var(--ink-3); letter-spacing: 0.04em; }
+.ledger-foot { font-size: 12px; color: var(--ink-3); padding: 8px 2px 4px; }
 .empty { padding: 14px 4px; color: var(--ink-3); font-size: 13px; }
 
 /* Tooltip */
-.tip {
-  position: fixed; z-index: 10; pointer-events: none;
-  background: var(--tip-bg); color: var(--tip-ink);
-  border-radius: 8px; padding: 8px 10px; font-size: 13px; line-height: 1.4;
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
-  max-width: 240px;
-}
+.tip { position: fixed; z-index: 10; pointer-events: none; background: var(--tip-bg); color: var(--tip-ink); border-radius: 8px; padding: 8px 10px; font-size: 13px; line-height: 1.4; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18); max-width: 240px; }
 .tip strong { display: block; font-size: 14px; }
-.tip .num { font-size: 13px; }
 .tip .muted { opacity: 0.72; font-size: 12px; }
-
-/* Method */
-.method { margin-top: 28px; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px 32px; font-size: 13px; color: var(--ink-2); }
-.method h3 { margin: 0 0 6px; font-size: 13px; color: var(--ink); font-weight: 600; }
-.method p, .method ul { margin: 0; }
-.method ul { padding-left: 18px; }
-.method a { color: var(--accent); }
-.formula { font-family: var(--font-num); font-size: 12px; background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; padding: 8px 10px; margin-top: 6px; overflow-x: auto; white-space: nowrap; }
-
-@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header class="top">
-    <div class="eyebrow"><span>2026년 10월 기준</span><span>월 환산 · 미국 달러</span><span id="countLabel"></span></div>
-    <h1>세계 최저임금 지구본</h1>
-    <p class="lede">지구본을 드래그해서 돌려 보세요. 나라를 누르면 현지 통화 기준 최저임금과 월 환산 금액, 한국과의 비교가 나옵니다.</p>
+    <h1>세계 지표 지구본</h1>
+    <p class="tagline">지표를 고르고, 지구본을 돌려 나라를 눌러 보세요.</p>
   </header>
 
   <div class="grid">
-    <section class="stage" aria-label="최저임금 지구본">
+    <nav class="indicators" aria-label="지표 목록">
+      <div class="label">지표</div>
+      <ul class="ind-list" id="indList"></ul>
+      <section class="about card" id="about" aria-live="polite"></section>
+    </nav>
+
+    <section class="stage" aria-label="지구본">
+      <div class="stage-head">
+        <h2 id="stageTitle"></h2>
+        <span class="label" id="stageMeta"></span>
+      </div>
       <div class="globe-box" id="globeBox">
-        <canvas id="globe" tabindex="0" role="img" aria-label="나라별 월 최저임금을 색으로 표시한 지구본. 방향키로 회전, +와 -로 확대·축소할 수 있습니다."></canvas>
-        <div class="hint" id="hint">드래그로 회전 · 스크롤로 확대</div>
+        <canvas id="globe" tabindex="0" role="img" aria-label="선택한 지표를 나라별 색으로 표시한 지구본. 방향키로 회전, +와 -로 확대·축소할 수 있습니다."></canvas>
+        <div class="hint">드래그로 회전 · 스크롤로 확대</div>
         <div class="controls">
           <button class="ctrl" id="zoomIn" type="button" aria-label="확대">+</button>
           <button class="ctrl" id="zoomOut" type="button" aria-label="축소">−</button>
@@ -251,60 +269,27 @@ dl.slip dd { margin: 0; text-align: right; min-width: 0; overflow-wrap: anywhere
         </div>
       </div>
       <div class="legend" aria-label="범례">
-        <div class="legend-title">월 최저임금 (미국 달러, 세전 · k = 1,000)</div>
+        <div class="label" id="legendTitle"></div>
         <div class="legend-row" id="legendRow"></div>
-        <div class="lg-extra">
-          <span><i class="chip none"></i>법정 최저임금 없음</span>
-          <span><i class="chip nodata"></i>자료 없음</span>
-        </div>
+        <div class="lg-extra" id="legendExtra"></div>
       </div>
     </section>
 
-    <aside>
-      <article class="card" id="detail" aria-live="polite"></article>
-
-      <section class="card" aria-labelledby="ledgerTitle">
+    <aside class="side">
+      <article class="card sheet" id="detail" aria-live="polite"></article>
+      <section class="card ledger-card" aria-labelledby="ledgerTitle">
         <div class="ledger-head">
           <h2 id="ledgerTitle">순위표</h2>
           <input class="field" id="search" type="search" placeholder="나라 이름 검색" aria-label="나라 이름 검색">
-          <select class="field" id="region" aria-label="지역 선택">
-            <option value="">전체 지역</option>
-          </select>
+          <select class="field" id="region" aria-label="지역 선택"><option value="">전체 지역</option></select>
         </div>
         <ul class="ledger" id="ledger"></ul>
+        <div class="ledger-foot" id="ledgerFoot"></div>
       </section>
     </aside>
-  </div>
 
-  <section class="method" aria-label="자료와 계산 방법">
-    <div>
-      <h3>계산 방법</h3>
-      <p>각국의 법정 최저임금을 현지 통화로 받아 한 달치로 환산한 뒤, 2026년 10월 초 환율로 달러로 바꿨습니다. 세금과 사회보험료를 빼기 전 금액입니다.</p>
-      <div class="formula">시급 × 주 40시간 × 52주 ÷ 12 = 월액 (약 173.3시간)</div>
-      <p style="margin-top:6px">한국은 주휴수당을 포함한 월 209시간, 호주는 주 38시간, 파나마는 주 48시간, 일급은 월 26일(멕시코는 30.4일)로 계산했습니다.</p>
-    </div>
-    <div>
-      <h3>읽을 때 주의할 점</h3>
-      <ul>
-        <li>중국·인도네시아·태국·베트남 등 지역별로 다른 나라는 수도나 최고 등급 지역 기준입니다. 일본은 전국 가중평균, 미국은 연방 기준입니다.</li>
-        <li>환율이 크게 움직이는 나라(아르헨티나, 나이지리아, 이집트, 볼리비아, 베네수엘라 등)는 달러 금액이 빠르게 바뀝니다.</li>
-        <li>물가 수준(구매력)은 반영하지 않은 명목 금액입니다.</li>
-        <li>‘원문 미확인’으로 표시된 나라는 보도 자료를 모은 값이라 공식 고시와 다를 수 있습니다.</li>
-      </ul>
-    </div>
-    <div>
-      <h3>출처</h3>
-      <ul>
-        <li><a href="https://ec.europa.eu/eurostat/statistics-explained/index.php?title=Minimum_wage_statistics" target="_blank" rel="noopener">Eurostat 최저임금 통계 (2026년 7월)</a></li>
-        <li><a href="https://tradingeconomics.com/country-list/minimum-wages" target="_blank" rel="noopener">Trading Economics 국가별 최저임금</a></li>
-        <li><a href="https://www.indexbox.io/blog/minimum-wage-in-europe-july-2026-rankings-and-inflation-impact/" target="_blank" rel="noopener">IndexBox 유럽 최저임금 2026년 7월</a></li>
-        <li><a href="https://rivermate.com/blog/minimum-wage-latin-america-2026" target="_blank" rel="noopener">Rivermate 중남미 최저임금 2026</a></li>
-        <li><a href="https://africa-hr.com/blog/minimum-wage-across-africa/" target="_blank" rel="noopener">Africa HR 아프리카 최저임금 2026</a></li>
-        <li><a href="https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html" target="_blank" rel="noopener">ECB 기준환율</a> · <a href="https://www.federalreserve.gov/releases/h10/current/" target="_blank" rel="noopener">Fed H.10</a></li>
-        <li>지도: Natural Earth 1:50m (world-atlas)</li>
-      </ul>
-    </div>
-  </section>
+    <section class="about card inline" id="aboutInline" aria-label="지표 설명" hidden></section>
+  </div>
 </div>
 
 <div class="tip" id="tip" hidden></div>
@@ -312,40 +297,49 @@ dl.slip dd { margin: 0; text-align: right; min-width: 0; overflow-wrap: anywhere
 <script src="vendor/d3.min.js"></script>
 <script src="vendor/topojson-client.min.js"></script>
 <script src="data/world-50m.js"></script>
-<script src="data/minimum-wage.js"></script>
+<script src="data/countries.js"></script>
+<script src="data/indicators/minimum-wage.js"></script>
+<script src="data/indicators/life-expectancy.js"></script>
 <script>
 (function () {
   "use strict";
 
-  const DATA = window.MINIMUM_WAGE;
   const TOPO = window.WORLD_TOPO;
+  const COUNTRIES = window.COUNTRIES;
+  const KOREA = "410";
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  // ---------- Data ----------
-  const byKey = new Map();
-  DATA.countries.forEach(c => byKey.set(c.id, c));
-  const statutory = DATA.countries.filter(c => c.status === "statutory").sort((a, b) => b.monthlyUsd - a.monthlyUsd);
-  statutory.forEach((c, i) => { c.rank = i + 1; });
-  const korea = byKey.get("410");
-
-  const geoAll = topojson.feature(TOPO, TOPO.objects.countries).features
-    .filter(f => f.properties.name !== "Antarctica");
-  const borders = topojson.mesh(TOPO, TOPO.objects.countries, (a, b) => a !== b);
-  geoAll.forEach(f => {
-    f.key = f.id || f.properties.name;
-    f.wage = byKey.get(f.key) || null;
-    f.bbox = d3.geoBounds(f);
+  // ---------- Indicators ----------
+  const INDICATORS = (window.INDICATORS || []).slice().sort((a, b) => a.order - b.order);
+  INDICATORS.forEach(ind => {
+    const ranked = Object.entries(ind.rows)
+      .filter(([, r]) => r.status === "value")
+      .map(([id, r]) => ({ id, ...r }))
+      .sort((a, b) => b.value - a.value);
+    ranked.forEach((r, i) => { r.rank = ind.rows[r.id].rank = i + 1; });
+    ind.ranked = ranked;
+    ind.none = Object.keys(ind.rows).filter(id => ind.rows[id].status === "none");
+    ind.min = d3.min(ranked, r => r.value);
+    ind.max = d3.max(ranked, r => r.value);
   });
+  const byId = new Map(INDICATORS.map(i => [i.id, i]));
+  let ind = byId.get(location.hash.slice(1)) || INDICATORS[0];
+
+  const binOf = (i, v) => d3.bisectRight(i.thresholds, v);
+  const fmtValue = (i, v) => i.prefix + d3.format(`,.${i.decimals}f`)(v) + i.suffix;
+  const nameKo = key => (COUNTRIES[key] && COUNTRIES[key].ko) || key;
+
+  // ---------- Geography ----------
+  const geoAll = topojson.feature(TOPO, TOPO.objects.countries).features.filter(f => f.properties.name !== "Antarctica");
+  const borders = topojson.mesh(TOPO, TOPO.objects.countries, (a, b) => a !== b);
+  // world-atlas leaves Kosovo without a numeric id; the data uses its UN code.
+  const NAME_KEYS = { Kosovo: "412" };
+  geoAll.forEach(f => { f.key = f.id || NAME_KEYS[f.properties.name] || f.properties.name; f.bbox = d3.geoBounds(f); });
   const featureByKey = new Map(geoAll.map(f => [f.key, f]));
+  const labelOf = f => (COUNTRIES[f.key] ? COUNTRIES[f.key].ko : f.properties.name);
 
-  document.getElementById("countLabel").textContent =
-    `${statutory.length}개국 · 법정 최저임금 없는 나라 ${DATA.countries.length - statutory.length}곳`;
-
-  // ---------- Color ----------
-  const THRESHOLDS = [150, 300, 600, 1200, 2000];
-  const BIN_LABELS = ["~150", "150–300", "300–600", "600–1.2k", "1.2k–2k", "2k+"];
-  const binOf = v => d3.bisectRight(THRESHOLDS, v);
-  let colors = {};
+  // ---------- Colors from tokens ----------
+  let colors = {}, hatchPattern = null;
   function readColors() {
     const cs = getComputedStyle(document.documentElement);
     const g = n => cs.getPropertyValue(n).trim();
@@ -358,7 +352,7 @@ dl.slip dd { margin: 0; text-align: right; min-width: 0; overflow-wrap: anywhere
     hatchPattern = null;
   }
 
-  // ---------- Canvas & projection ----------
+  // ---------- Canvas globe ----------
   const canvas = document.getElementById("globe");
   const ctx = canvas.getContext("2d");
   const box = document.getElementById("globeBox");
@@ -366,10 +360,8 @@ dl.slip dd { margin: 0; text-align: right; min-width: 0; overflow-wrap: anywhere
   const path = d3.geoPath(projection, ctx);
   const graticule = d3.geoGraticule10();
   const sphere = { type: "Sphere" };
-
   let width = 0, height = 0, dpr = 1, baseScale = 1, zoomK = 1;
-  let rotation = [-127.5, -30, 0];  // centered over Korea
-  let hatchPattern = null;
+  let rotation = [-127.5, -30, 0];
   let hovered = null, selected = null, legendFocus = null;
 
   function resize() {
@@ -400,50 +392,42 @@ dl.slip dd { margin: 0; text-align: right; min-width: 0; overflow-wrap: anywhere
     return hatchPattern;
   }
 
+  function rowOf(f) { return ind.rows[f.key] || null; }
   function fillFor(f) {
-    if (!f.wage) return colors.none;
-    if (f.wage.status === "none") return getHatch();
-    return colors.seq[binOf(f.wage.monthlyUsd)];
+    const r = rowOf(f);
+    if (!r) return colors.none;
+    if (r.status === "none") return getHatch();
+    return colors.seq[binOf(ind, r.value)];
   }
 
   let frame = 0;
   function render() { if (!frame) frame = requestAnimationFrame(draw); }
-
   function draw() {
     frame = 0;
     if (!width) return;
     projection.scale(baseScale * zoomK).translate([width / 2, height / 2]).rotate(rotation);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, width, height);
-
-    // ocean
     ctx.beginPath(); path(sphere); ctx.fillStyle = colors.ocean; ctx.fill();
     ctx.beginPath(); path(graticule); ctx.strokeStyle = colors.graticule; ctx.lineWidth = 0.6; ctx.stroke();
-
-    // countries
     const dim = legendFocus !== null;
     for (const f of geoAll) {
       ctx.beginPath(); path(f);
       ctx.fillStyle = fillFor(f);
       if (dim) {
-        const hit = f.wage && f.wage.status === "statutory" && binOf(f.wage.monthlyUsd) === legendFocus;
-        ctx.globalAlpha = hit ? 1 : 0.22;
+        const r = rowOf(f);
+        ctx.globalAlpha = r && r.status === "value" && binOf(ind, r.value) === legendFocus ? 1 : 0.22;
       }
       ctx.fill();
       ctx.globalAlpha = 1;
     }
-    ctx.beginPath(); path(borders);
-    ctx.strokeStyle = colors.border; ctx.lineWidth = 0.6; ctx.stroke();
-
-    // spherical shading for depth
+    ctx.beginPath(); path(borders); ctx.strokeStyle = colors.border; ctx.lineWidth = 0.6; ctx.stroke();
     const [cx, cy] = projection.translate();
-    const r = projection.scale();
-    const g = ctx.createRadialGradient(cx - r * 0.35, cy - r * 0.4, r * 0.1, cx, cy, r);
-    g.addColorStop(0, colors.shine); g.addColorStop(0.55, "rgba(0,0,0,0)"); g.addColorStop(1, colors.shade);
-    ctx.beginPath(); path(sphere); ctx.fillStyle = g; ctx.fill();
+    const rad = projection.scale();
+    const grad = ctx.createRadialGradient(cx - rad * 0.35, cy - rad * 0.4, rad * 0.1, cx, cy, rad);
+    grad.addColorStop(0, colors.shine); grad.addColorStop(0.55, "rgba(0,0,0,0)"); grad.addColorStop(1, colors.shade);
+    ctx.beginPath(); path(sphere); ctx.fillStyle = grad; ctx.fill();
     ctx.beginPath(); path(sphere); ctx.strokeStyle = colors.oceanEdge; ctx.lineWidth = 1; ctx.stroke();
-
-    // hover / selection outlines
     if (hovered && hovered !== selected) {
       ctx.beginPath(); path(hovered); ctx.strokeStyle = colors.focus; ctx.lineWidth = 1; ctx.stroke();
     }
@@ -459,45 +443,37 @@ dl.slip dd { margin: 0; text-align: right; min-width: 0; overflow-wrap: anywhere
     const [[x0, y0], [x1, y1]] = f.bbox;
     if (lat < y0 - 0.5 || lat > y1 + 0.5) return false;
     if (x0 <= x1) return lon >= x0 - 0.5 && lon <= x1 + 0.5;
-    return lon >= x0 - 0.5 || lon <= x1 + 0.5;  // crosses antimeridian
+    return lon >= x0 - 0.5 || lon <= x1 + 0.5;
   }
   function featureAt(px, py) {
     const ll = projection.invert([px, py]);
     if (!ll || isNaN(ll[0])) return null;
-    const center = [-rotation[0], -rotation[1]];
-    if (d3.geoDistance(ll, center) > Math.PI / 2) return null;
-    for (const f of geoAll) {
-      if (inBox(f, ll[0], ll[1]) && d3.geoContains(f, ll)) return f;
-    }
+    if (d3.geoDistance(ll, [-rotation[0], -rotation[1]]) > Math.PI / 2) return null;
+    for (const f of geoAll) if (inBox(f, ll[0], ll[1]) && d3.geoContains(f, ll)) return f;
     return null;
   }
 
-  // ---------- Interaction: drag to rotate, wheel/pinch to zoom ----------
+  // ---------- Drag to rotate, wheel / pinch to zoom ----------
   let lastT = d3.zoomIdentity, dragMoved = false, spinning = false;
   const zoom = d3.zoom()
     .scaleExtent([0.8, 10])
     .clickDistance(4)
     .on("start", (e) => {
-      dragMoved = false;
-      stopFly();
+      dragMoved = false; stopFly();
       if (e.sourceEvent && e.sourceEvent.type !== "wheel") canvas.classList.add("dragging");
     })
     .on("zoom", (e) => {
-      const t = e.transform;
-      const src = e.sourceEvent;
+      const t = e.transform, src = e.sourceEvent;
       if (src && src.type !== "wheel" && t.k === lastT.k) {
         const k = 0.25 / zoomK * (300 / Math.max(baseScale, 1));
         const dx = t.x - lastT.x, dy = t.y - lastT.y;
         if (Math.abs(dx) + Math.abs(dy) > 0) {
-          dragMoved = true;
-          setSpin(false);
+          dragMoved = true; setSpin(false);
           rotation = [rotation[0] + dx * k, clampLat(rotation[1] - dy * k), 0];
           hideTip();
         }
       }
-      zoomK = t.k;
-      lastT = t;
-      render();
+      zoomK = t.k; lastT = t; render();
     })
     .on("end", () => canvas.classList.remove("dragging"));
   d3.select(canvas).call(zoom).on("dblclick.zoom", null);
@@ -506,8 +482,7 @@ dl.slip dd { margin: 0; text-align: right; min-width: 0; overflow-wrap: anywhere
   function zoomBy(f) { d3.select(canvas).transition().duration(reduceMotion ? 0 : 250).call(zoom.scaleBy, f); }
   document.getElementById("zoomIn").addEventListener("click", () => zoomBy(1.5));
   document.getElementById("zoomOut").addEventListener("click", () => zoomBy(1 / 1.5));
-  document.getElementById("home").addEventListener("click", () => select(featureByKey.get("410"), true));
-
+  document.getElementById("home").addEventListener("click", () => select(featureByKey.get(KOREA), true));
   canvas.addEventListener("keydown", (e) => {
     const step = 8 / zoomK;
     const map = { ArrowLeft: [step, 0], ArrowRight: [-step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] };
@@ -515,11 +490,11 @@ dl.slip dd { margin: 0; text-align: right; min-width: 0; overflow-wrap: anywhere
       e.preventDefault(); setSpin(false);
       rotation = [rotation[0] + map[e.key][0], clampLat(rotation[1] + map[e.key][1]), 0];
       render();
-    } else if (e.key === "+" || e.key === "=") { zoomBy(1.5); }
-    else if (e.key === "-") { zoomBy(1 / 1.5); }
+    } else if (e.key === "+" || e.key === "=") zoomBy(1.5);
+    else if (e.key === "-") zoomBy(1 / 1.5);
   });
 
-  // Hover tooltip
+  // ---------- Tooltip ----------
   const tip = document.getElementById("tip");
   let pending = null;
   canvas.addEventListener("pointermove", (e) => {
@@ -541,17 +516,13 @@ dl.slip dd { margin: 0; text-align: right; min-width: 0; overflow-wrap: anywhere
     const f = featureAt(e.clientX - r.left, e.clientY - r.top);
     if (f) select(f, false);
   });
-
-  const fmt0 = d3.format(",.0f");
-  const fmtLocal = v => (Math.abs(v) >= 100 ? d3.format(",.0f")(v) : d3.format(",.2~f")(v));
-  function nameOf(f) { return f.wage ? f.wage.nameKo : f.properties.name; }
-
   function showTip(f, x, y) {
-    const w = f.wage;
-    let html = `<strong>${nameOf(f)}</strong>`;
-    if (!w) html += `<span class="muted">자료 없음</span>`;
-    else if (w.status === "none") html += `<span class="muted">법정 최저임금 없음</span>`;
-    else html += `<span class="num">월 $${fmt0(w.monthlyUsd)}</span><br><span class="muted num">${fmtLocal(w.amount)} ${w.currency} / ${w.periodKo}</span>`;
+    const r = rowOf(f);
+    let html = `<strong>${labelOf(f)}</strong>`;
+    if (!r) html += `<span class="muted">자료 없음</span>`;
+    else if (r.status === "none") html += `<span class="muted">${ind.noneLabel}</span>`;
+    else html += `<span class="num">${fmtValue(ind, r.value)}${ind.bigUnit && ind.bigUnit.startsWith("/") ? " " + ind.bigUnit : ""}</span>` +
+      (r.tip ? `<br><span class="muted num">${r.tip}</span>` : "");
     tip.innerHTML = html;
     tip.hidden = false;
     const tw = tip.offsetWidth, th = tip.offsetHeight;
@@ -562,7 +533,7 @@ dl.slip dd { margin: 0; text-align: right; min-width: 0; overflow-wrap: anywhere
   }
   function hideTip() { tip.hidden = true; }
 
-  // ---------- Fly to a country ----------
+  // ---------- Fly to ----------
   function focusPoint(f) {
     let geom = f.geometry;
     if (geom.type === "MultiPolygon") {
@@ -582,9 +553,7 @@ dl.slip dd { margin: 0; text-align: right; min-width: 0; overflow-wrap: anywhere
     stopFly();
     const [lon, lat] = focusPoint(f);
     const target = [-lon, clampLat(-lat), 0];
-    // shortest way around in longitude
-    let d = target[0] - rotation[0];
-    d = ((d + 540) % 360) - 180;
+    const d = ((target[0] - rotation[0] + 540) % 360) - 180;
     target[0] = rotation[0] + d;
     if (reduceMotion) { rotation = target; render(); return; }
     const interp = d3.interpolate(rotation.slice(), target);
@@ -606,88 +575,202 @@ dl.slip dd { margin: 0; text-align: right; min-width: 0; overflow-wrap: anywhere
     if (spinTimer) { spinTimer.stop(); spinTimer = null; }
     if (on) {
       let last = 0;
-      spinTimer = d3.timer((el) => {
-        rotation = [rotation[0] + (el - last) * 0.006, rotation[1], 0];
-        last = el; render();
-      });
+      spinTimer = d3.timer((el) => { rotation = [rotation[0] + (el - last) * 0.006, rotation[1], 0]; last = el; render(); });
     }
   }
   spinBtn.addEventListener("click", () => setSpin(!spinning));
 
-  // ---------- Detail card ----------
+  // ---------- Left: indicator list & about ----------
+  const indList = document.getElementById("indList");
+  function renderIndicators() {
+    indList.innerHTML = INDICATORS.map(i => `
+      <li><button type="button" class="ind-btn" data-ind="${i.id}" aria-pressed="${i === ind}">
+        <span class="ind-name">${i.name}</span><span class="ind-group">${i.group}</span>
+        <span class="ind-meta">${i.unitLabel} · ${i.asOf} · ${i.ranked.length}개 국가·지역</span>
+        <span class="ind-ramp" aria-hidden="true">${colors.seq.map(c => `<i style="background:${c}"></i>`).join("")}</span>
+      </button></li>`).join("");
+  }
+  indList.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-ind]");
+    if (b) setIndicator(byId.get(b.dataset.ind));
+  });
+
+  function aboutHtml(i) {
+    return `
+      <h2>${i.longName}</h2>
+      <p>${i.summary}.</p>
+      <h3>계산 방법</h3>
+      ${i.method.map(m => `<p>${m}</p>`).join("")}
+      <h3>출처</h3>
+      <ul>${i.sources.map(s => `<li><a href="${s.url}" target="_blank" rel="noopener">${s.name}</a></li>`).join("")}
+        <li>지도: Natural Earth 1:50m (world-atlas)</li></ul>`;
+  }
+  const about = document.getElementById("about");
+  const aboutInline = document.getElementById("aboutInline");
+  const narrow = window.matchMedia("(max-width: 1180px)");
+  function renderAbout() {
+    about.innerHTML = aboutHtml(ind);
+    aboutInline.innerHTML = aboutHtml(ind);
+    aboutInline.hidden = !narrow.matches;
+  }
+  narrow.addEventListener("change", renderAbout);
+
+  // ---------- Center: heading & legend ----------
+  function renderStage() {
+    document.getElementById("stageTitle").textContent = ind.longName;
+    document.getElementById("stageMeta").textContent = `${ind.asOf} · ${ind.unitLabel}`;
+    document.getElementById("legendTitle").textContent = ind.legendTitle;
+    document.getElementById("legendRow").innerHTML = ind.binLabels.map((l, i) => `
+      <button type="button" class="lg-item" data-bin="${i}" aria-label="${l} 구간 강조">
+        <span class="lg-swatch" style="background:${colors.seq[i]}"></span><span>${l}</span>
+      </button>`).join("");
+    document.getElementById("legendExtra").innerHTML =
+      (ind.noneLabel ? `<span><i class="chip none"></i>${ind.noneLabel}</span>` : "") +
+      `<span><i class="chip nodata"></i>자료 없음</span>`;
+  }
+  const legendRow = document.getElementById("legendRow");
+  legendRow.addEventListener("pointerover", (e) => { const b = e.target.closest("[data-bin]"); if (b) { legendFocus = +b.dataset.bin; render(); } });
+  legendRow.addEventListener("pointerout", (e) => { if (!legendRow.contains(e.relatedTarget)) { legendFocus = null; render(); } });
+  legendRow.addEventListener("focusin", (e) => { const b = e.target.closest("[data-bin]"); if (b) { legendFocus = +b.dataset.bin; render(); } });
+  legendRow.addEventListener("focusout", () => { legendFocus = null; render(); });
+
+  // ---------- Right: country sheet ----------
   const detail = document.getElementById("detail");
-  function renderDetail(f) {
-    const w = f.wage;
-    const en = w ? w.nameEn : f.properties.name;
-    if (!w || w.status === "none") {
-      detail.innerHTML = `
-        <div class="detail-head"><div><h2 class="detail-name">${nameOf(f)}</h2><div class="detail-en">${en}</div></div></div>
-        <p class="status-none">${w ? "법정 최저임금이 없습니다." : "이 나라는 아직 자료를 넣지 못했습니다."}</p>
-        ${w && w.note ? `<p class="note">${w.note}</p>` : ""}`;
-      return;
+  function compareHtml(r, key) {
+    const k = ind.rows[KOREA];
+    if (!k || k.status !== "value") return "";
+    const pct = v => ((v - (ind.compare === "ratio" ? 0 : ind.min)) / (ind.max - (ind.compare === "ratio" ? 0 : ind.min)) * 100).toFixed(1);
+    let text;
+    if (key === KOREA) text = "비교 기준 국가 (막대의 세로선이 한국)";
+    else if (ind.compare === "ratio") text = `한국(${fmtValue(ind, k.value)})의 <b class="num">${d3.format(".0%")(r.value / k.value)}</b> 수준`;
+    else {
+      const d = r.value - k.value;
+      text = Math.abs(d) < 0.05 ? `한국(${fmtValue(ind, k.value)})과 같음`
+        : `한국(${fmtValue(ind, k.value)})보다 <b class="num">${fmtValue(ind, Math.abs(d))}</b> ${d > 0 ? "높음" : "낮음"}`;
     }
-    const ratio = w.monthlyUsd / korea.monthlyUsd;
-    const maxUsd = statutory[0].monthlyUsd;
-    const isKorea = w.id === "410";
-    const compareText = isKorea
-      ? `비교 기준 국가 (막대의 세로선이 한국)`
-      : `한국(월 $${fmt0(korea.monthlyUsd)})의 <b class="num">${d3.format(".0%")(ratio)}</b> 수준`;
-    const perMonthText = w.period === "month" ? "월급 그대로" :
-      `${fmtLocal(w.amount)} × ${d3.format(",.2~f")(w.perMonth)}${w.period === "hour" ? "시간" : w.period === "day" ? "일" : "주"}`;
-    detail.innerHTML = `
-      <div class="detail-head">
-        <div><h2 class="detail-name">${w.nameKo}</h2><div class="detail-en">${en} · ${w.region}</div></div>
-        <span class="rank-pill">${w.rank} / ${statutory.length}위</span>
-      </div>
-      <div class="big"><span class="val">$${fmt0(w.monthlyUsd)}</span><span class="unit">/ 월</span></div>
-      <p class="compare">${compareText}</p>
-      <div class="compare-bar" aria-hidden="true">
-        <i style="width:${(w.monthlyUsd / maxUsd * 100).toFixed(1)}%"></i>
-        <b style="left:calc(${(korea.monthlyUsd / maxUsd * 100).toFixed(1)}% - 1px)" title="한국"></b>
-      </div>
-      <dl class="slip">
-        <dt>법정 금액</dt><dd class="num">${fmtLocal(w.amount)} ${w.currency} / ${w.periodKo}</dd>
-        <dt>월 환산</dt><dd class="num">${fmt0(w.monthlyLocal)} ${w.currency}</dd>
-        <dt>환산 기준</dt><dd>${perMonthText}</dd>
-        <dt>적용 환율</dt><dd class="num">1 USD = ${fmtLocal(w.fxPerUsd)} ${w.currency}</dd>
-        <dt>시행</dt><dd class="num">${w.effective}</dd>
-        <dt>출처</dt><dd>${w.source}</dd>
-      </dl>
-      ${w.note ? `<p class="note">${w.note}</p>` : ""}`;
+    const lo = ind.compare === "ratio" ? 0 : ind.min;
+    return `<p class="compare">${text}</p>
+      <div class="compare-bar" aria-hidden="true"><i style="width:${pct(r.value)}%"></i><b style="left:calc(${pct(k.value)}% - 1px)"></b></div>
+      <div class="compare-scale" aria-hidden="true"><span>${fmtValue(ind, lo)}</span><span>${fmtValue(ind, ind.max)}</span></div>`;
   }
 
-  // ---------- Ledger ----------
+  function othersHtml(key) {
+    const others = INDICATORS.filter(i => i !== ind);
+    if (!others.length) return "";
+    return `<div class="others"><div class="label">이 나라의 다른 지표</div><ul>${others.map(i => {
+      const r = i.rows[key];
+      const val = !r ? "자료 없음" : r.status === "none" ? "없음" : fmtValue(i, r.value);
+      const rk = r && r.status === "value" ? `${r.rank} / ${i.ranked.length}위` : "";
+      return `<li><button type="button" data-ind="${i.id}" title="${i.name} 지표로 바꾸기"><span>${i.name}</span><span class="ov">${val}</span><span class="orank">${rk}</span></button></li>`;
+    }).join("")}</ul></div>`;
+  }
+  detail.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-ind]");
+    if (b) setIndicator(byId.get(b.dataset.ind));
+  });
+
+  function renderDetail() {
+    const f = selected;
+    const key = f.key;
+    const c = COUNTRIES[key];
+    const name = labelOf(f);
+    const en = c ? `${c.en} · ${c.region}` : f.properties.name;
+    const r = ind.rows[key];
+    let body;
+    if (!r) body = `<p class="status-none">${ind.name} 자료가 없는 나라입니다.</p>`;
+    else if (r.status === "none") body = `<p class="status-none">${ind.noneLabel}</p>${r.note ? `<p class="note">${r.note}</p>` : ""}`;
+    else body = `
+      <div class="big"><span class="val">${fmtValue(ind, r.value)}</span>${ind.bigUnit && ind.bigUnit.startsWith("/") ? `<span class="unit">${ind.bigUnit}</span>` : ""}</div>
+      ${compareHtml(r, key)}
+      ${r.series ? `<div class="trend" id="trend"></div>` : ""}
+      <dl class="slip">${r.details.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl>
+      ${r.note ? `<p class="note">${r.note}</p>` : ""}`;
+    const rank = r && r.status === "value" ? `<span class="rank-pill">${r.rank} / ${ind.ranked.length}위</span>` : "";
+    detail.innerHTML = `
+      <div class="detail-head"><div><h2 class="detail-name">${name}</h2><div class="detail-en">${en}</div></div>${rank}</div>
+      ${body}
+      ${othersHtml(key)}`;
+    if (r && r.series) drawTrend(document.getElementById("trend"), key, r.series);
+  }
+
+  // Trend chart: selected country (solid) vs Korea (dashed), with a hover crosshair.
+  function drawTrend(el, key, series) {
+    const W = el.clientWidth || 320, H = 132, m = { t: 8, r: 58, b: 22, l: 30 };
+    const selName = labelOf(selected).length > 5 ? labelOf(selected).slice(0, 5) + "…" : labelOf(selected);
+    const pts = series.values.map((v, i) => [series.start + i, v]);
+    const kr = key !== KOREA && ind.rows[KOREA] && ind.rows[KOREA].series;
+    const kpts = kr ? kr.values.map((v, i) => [kr.start + i, v]) : null;
+    const all = kpts ? pts.concat(kpts) : pts;
+    const x = d3.scaleLinear().domain(d3.extent(pts, p => p[0])).range([m.l, W - m.r]);
+    const y = d3.scaleLinear().domain(d3.extent(all, p => p[1])).nice(4).range([H - m.b, m.t]);
+    const line = d3.line().x(p => x(p[0])).y(p => y(p[1]));
+    const last = pts[pts.length - 1];
+    const years = x.domain();
+    el.innerHTML = `
+      <div class="trend-head"><span class="label">${ind.seriesLabel} (${years[0]}–${years[1]})</span><span class="trend-read" id="trendRead"></span></div>
+      <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${labelOf(selected)} ${ind.seriesLabel}">
+        <g class="axis">${y.ticks(4).map(t => `<line class="grid-line" x1="${m.l}" x2="${W - m.r}" y1="${y(t)}" y2="${y(t)}"/><text x="${m.l - 6}" y="${y(t) + 3.5}" text-anchor="end">${t}</text>`).join("")}
+          ${[years[0], 1980, 2000, years[1]].filter((v, i, a) => a.indexOf(v) === i).map(t => `<text x="${x(t)}" y="${H - 3}" text-anchor="middle">${t}</text>`).join("")}</g>
+        ${kpts ? `<path class="line-ref" d="${line(kpts)}"/><text class="end-label" x="${x(kpts[kpts.length - 1][0]) + 4}" y="${y(kpts[kpts.length - 1][1]) + 4}">한국</text>` : ""}
+        <path class="line-main" d="${line(pts)}"/>
+        <text class="end-label" x="${x(last[0]) + 4}" y="${y(last[1]) + (kpts && Math.abs(y(last[1]) - y(kpts[kpts.length - 1][1])) < 12 ? (last[1] < kpts[kpts.length - 1][1] ? 14 : -6) : 4)}">${selName}</text>
+        <line class="cross" id="cross" y1="${m.t}" y2="${H - m.b}" visibility="hidden"/>
+        <circle class="dot" id="dot" r="4" visibility="hidden"/>
+        <rect x="${m.l}" y="0" width="${W - m.l - m.r}" height="${H}" fill="transparent" id="hit"/>
+      </svg>`;
+    const svg = el.querySelector("svg"), cross = el.querySelector("#cross"), dot = el.querySelector("#dot"), read = el.querySelector("#trendRead");
+    const show = (clientX) => {
+      const b = svg.getBoundingClientRect();
+      const px = (clientX - b.left) * (W / b.width);
+      const yr = Math.round(Math.max(years[0], Math.min(years[1], x.invert(px))));
+      const v = series.values[yr - series.start];
+      cross.setAttribute("x1", x(yr)); cross.setAttribute("x2", x(yr)); cross.setAttribute("visibility", "visible");
+      dot.setAttribute("cx", x(yr)); dot.setAttribute("cy", y(v)); dot.setAttribute("visibility", "visible");
+      const kv = kr ? kr.values[yr - kr.start] : null;
+      read.textContent = `${yr}년 ${fmtValue(ind, v)}` + (kv != null ? ` · 한국 ${fmtValue(ind, kv)}` : "");
+    };
+    const hide = () => { cross.setAttribute("visibility", "hidden"); dot.setAttribute("visibility", "hidden"); read.textContent = ""; };
+    const hit = el.querySelector("#hit");
+    hit.addEventListener("pointermove", e => show(e.clientX));
+    hit.addEventListener("pointerdown", e => show(e.clientX));
+    hit.addEventListener("pointerleave", hide);
+  }
+
+  // ---------- Right: ledger ----------
   const ledger = document.getElementById("ledger");
   const search = document.getElementById("search");
   const regionSel = document.getElementById("region");
-  [...new Set(DATA.countries.map(c => c.region))].forEach(r => {
-    const o = document.createElement("option"); o.value = r; o.textContent = r; regionSel.appendChild(o);
-  });
-  const maxUsd = statutory[0].monthlyUsd;
+  [...new Set(Object.values(COUNTRIES).map(c => c.region))].filter(Boolean)
+    .sort((a, b) => a.localeCompare(b, "ko"))
+    .forEach(r => { const o = document.createElement("option"); o.value = r; o.textContent = r; regionSel.appendChild(o); });
 
   function renderLedger() {
     const q = search.value.trim().toLowerCase();
     const reg = regionSel.value;
-    const match = c => (!reg || c.region === reg) &&
-      (!q || c.nameKo.toLowerCase().includes(q) || c.nameEn.toLowerCase().includes(q));
-    const rows = statutory.filter(match);
-    const nones = DATA.countries.filter(c => c.status === "none" && match(c));
+    const match = id => {
+      const c = COUNTRIES[id] || { ko: id, en: id, region: "" };
+      return (!reg || c.region === reg) && (!q || c.ko.toLowerCase().includes(q) || c.en.toLowerCase().includes(q));
+    };
+    const rows = ind.ranked.filter(r => match(r.id));
+    const nones = ind.none.filter(match);
     const selKey = selected ? selected.key : null;
-    let html = rows.map(c => `
-      <li><button type="button" data-key="${c.id}" ${c.id === selKey ? 'aria-current="true"' : ""}>
-        <span class="rk">${c.rank}</span>
-        <span class="nm">${c.nameKo}</span>
-        <span class="v">$${fmt0(c.monthlyUsd)}</span>
-        <span class="bar" style="width:${Math.max(1, c.monthlyUsd / maxUsd * 100).toFixed(1)}%;background:${colors.seq[binOf(c.monthlyUsd)]}"></span>
+    const span = ind.compare === "ratio" ? [0, ind.max] : [ind.min - (ind.max - ind.min) * 0.08, ind.max];
+    let html = rows.map(r => `
+      <li><button type="button" data-key="${r.id}" ${r.id === selKey ? 'aria-current="true"' : ""}>
+        <span class="rk">${r.rank}</span><span class="nm">${nameKo(r.id)}</span><span class="v">${fmtValue(ind, r.value)}</span>
+        <span class="bar" style="width:${Math.max(1, (r.value - span[0]) / (span[1] - span[0]) * 100).toFixed(1)}%;background:${colors.seq[binOf(ind, r.value)]}"></span>
       </button></li>`).join("");
     if (nones.length) {
-      html += `<li class="ledger-group" aria-hidden="true">법정 최저임금 없음</li>` + nones.map(c => `
-        <li><button type="button" data-key="${c.id}" ${c.id === selKey ? 'aria-current="true"' : ""}>
-          <span class="rk">–</span><span class="nm">${c.nameKo}</span><span class="v">없음</span>
-        </button></li>`).join("");
+      html += `<li class="ledger-group" aria-hidden="true">${ind.noneLabel}</li>` + nones.map(id => `
+        <li><button type="button" data-key="${id}" ${id === selKey ? 'aria-current="true"' : ""}>
+          <span class="rk">–</span><span class="nm">${nameKo(id)}</span><span class="v">없음</span></button></li>`).join("");
     }
     if (!rows.length && !nones.length) html = `<li class="empty">맞는 나라가 없습니다. 검색어나 지역을 바꿔 보세요.</li>`;
     ledger.innerHTML = html;
+    document.getElementById("ledgerTitle").textContent = `${ind.name} 순위`;
+    document.getElementById("ledgerFoot").textContent = ind.compare === "ratio"
+      ? "막대는 0부터 최댓값까지의 비율입니다."
+      : `막대는 최솟값(${fmtValue(ind, ind.min)}) 근처부터 그립니다.`;
   }
   ledger.addEventListener("click", (e) => {
     const b = e.target.closest("button[data-key]");
@@ -698,57 +781,56 @@ dl.slip dd { margin: 0; text-align: right; min-width: 0; overflow-wrap: anywhere
   search.addEventListener("input", renderLedger);
   regionSel.addEventListener("change", renderLedger);
 
-  // ---------- Legend ----------
-  const legendRow = document.getElementById("legendRow");
-  function renderLegend() {
-    legendRow.innerHTML = BIN_LABELS.map((l, i) => `
-      <button type="button" class="lg-item" data-bin="${i}" aria-label="월 ${l} 달러 구간 강조">
-        <span class="lg-swatch" style="background:${colors.seq[i]}"></span><span>${l}</span>
-      </button>`).join("");
+  function scrollLedgerToSelection() {
+    const cur = ledger.querySelector('[aria-current="true"]');
+    if (!cur) return;
+    const top = cur.offsetTop - ledger.offsetTop;
+    if (top < ledger.scrollTop || top > ledger.scrollTop + ledger.clientHeight - cur.offsetHeight) {
+      ledger.scrollTop = top - ledger.clientHeight / 2 + cur.offsetHeight / 2;
+    }
   }
-  legendRow.addEventListener("pointerover", (e) => {
-    const b = e.target.closest("[data-bin]"); if (!b) return;
-    legendFocus = +b.dataset.bin; render();
-  });
-  legendRow.addEventListener("pointerout", (e) => {
-    if (!legendRow.contains(e.relatedTarget)) { legendFocus = null; render(); }
-  });
-  legendRow.addEventListener("focusin", (e) => {
-    const b = e.target.closest("[data-bin]"); if (b) { legendFocus = +b.dataset.bin; render(); }
-  });
-  legendRow.addEventListener("focusout", () => { legendFocus = null; render(); });
 
-  // ---------- Selection ----------
+  // ---------- State changes ----------
   function select(f, fly) {
     selected = f;
-    renderDetail(f);
+    renderDetail();
     renderLedger();
-    const cur = ledger.querySelector('[aria-current="true"]');
-    if (cur && fly) {
-      // scroll only the list, never the page
-      const top = cur.offsetTop - ledger.offsetTop;
-      if (top < ledger.scrollTop || top > ledger.scrollTop + ledger.clientHeight - cur.offsetHeight) {
-        ledger.scrollTop = top - ledger.clientHeight / 2 + cur.offsetHeight / 2;
-      }
-    }
+    scrollLedgerToSelection();
     if (fly) { setSpin(false); flyTo(f); }
     render();
   }
 
-  // ---------- Theme changes ----------
-  function onTheme() { readColors(); renderLegend(); renderLedger(); render(); }
+  function setIndicator(next) {
+    if (!next) return;
+    ind = next;
+    legendFocus = null;
+    try { history.replaceState(null, "", "#" + ind.id); } catch (_) { /* sandboxed frames may refuse */ }
+    renderIndicators();
+    renderAbout();
+    renderStage();
+    renderDetail();
+    renderLedger();
+    scrollLedgerToSelection();
+    render();
+  }
+
+  function onTheme() { readColors(); setIndicator(ind); }
   window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", onTheme);
   new MutationObserver(onTheme).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  window.addEventListener("hashchange", () => setIndicator(byId.get(location.hash.slice(1))));
 
   // ---------- Boot ----------
   readColors();
-  renderLegend();
-  selected = featureByKey.get("410");
-  renderDetail(selected);
-  renderLedger();
+  selected = featureByKey.get(KOREA);
+  setIndicator(ind);
   new ResizeObserver(resize).observe(box);
+  // keep the trend chart's viewBox in step with its card width
+  let lastSide = 0;
+  new ResizeObserver(([e]) => {
+    const w = Math.round(e.contentRect.width);
+    if (w !== lastSide) { lastSide = w; if (document.getElementById("trend")) renderDetail(); }
+  }).observe(detail);
   resize();
-  if (!reduceMotion) setSpin(false);
 })();
 </script>
 </body>

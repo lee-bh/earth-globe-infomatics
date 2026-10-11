@@ -57,7 +57,7 @@ id,name_ko,name_en,region,status,amount,currency,period,per_month,effective,fx_p
 807,북마케도니아,North Macedonia,유럽,statutory,624,EUR,month,1,2026-07,0.8924,Eurostat,
 008,알바니아,Albania,유럽,statutory,50000,ALL,month,1,2025-01,86.6,Trading Economics,
 070,보스니아 헤르체고비나,Bosnia and Herzegovina,유럽,statutory,1027,BAM,month,1,2026-01,1.745,Trading Economics,
-Kosovo,코소보,Kosovo,유럽,statutory,350,EUR,month,1,2023-09,0.8924,공개 보도 종합(원문 미확인),
+412,코소보,Kosovo,유럽,statutory,350,EUR,month,1,2023-09,0.8924,공개 보도 종합(원문 미확인),
 498,몰도바,Moldova,유럽,statutory,6300,MDL,month,1,2026-01,17.8,Trading Economics,
 804,우크라이나,Ukraine,유럽,statutory,8647,UAH,month,1,2026-01,45.5,Trading Economics,
 112,벨라루스,Belarus,유럽,statutory,858,BYN,month,1,2026-01,3.0,Trading Economics,
