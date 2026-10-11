@@ -1,12 +1,13 @@
 """Build the page's data scripts from the CSV sources.
 
 Usage:
-    python3 scripts/build_data.py [path/to/countries-50m.json]
+    python3 scripts/build_data.py [path/to/world-atlas]      # the unpacked world-atlas@2.0.2 package
 
 Outputs:
     data/countries.js                    window.COUNTRIES = {...}
     data/indicators/<indicator-id>.js    pushes one indicator onto window.INDICATORS
-    data/world-50m.js                    window.WORLD_TOPO (only when a TopoJSON path is given)
+    data/world-50m.js, data/world-110m.js   window.WORLD_TOPO / WORLD_TOPO_LO (only when world-atlas is given);
+                                            the globe draws 1:110m while moving and 1:50m at rest
 
 Each indicator file is self-describing (name, unit, color bins, sources, method,
 and one row per country), so adding an indicator means adding one builder
@@ -577,9 +578,11 @@ def main():
     build_co2_per_capita(countries)
 
     if len(sys.argv) > 1:
-        topo = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
-        write_js(DATA / "world-50m.js", "window.WORLD_TOPO = " + json.dumps(topo, separators=(",", ":")) + ";",
-                 "Natural Earth 1:50m countries via world-atlas@2.0.2 (public domain).")
+        atlas = Path(sys.argv[1])
+        for scale, var in (("50m", "WORLD_TOPO"), ("110m", "WORLD_TOPO_LO")):
+            topo = json.loads((atlas / f"countries-{scale}.json").read_text(encoding="utf-8"))
+            write_js(DATA / f"world-{scale}.js", f"window.{var} = " + json.dumps(topo, separators=(",", ":")) + ";",
+                     f"Natural Earth 1:{scale} countries via world-atlas@2.0.2 (public domain).")
 
 
 if __name__ == "__main__":

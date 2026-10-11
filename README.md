@@ -44,7 +44,7 @@
 | `data/unemployment.csv`, `data/unemployment-series.csv` | 실업률 최신값(전체·남·여)과 연도별 추이 (1991–2025) |
 | `data/co2-per-capita.csv`, `data/co2-per-capita-series.csv` | 1인당 CO2 최신값, 총배출량, 소비 기준 1인당 값과 연도별 추이 (1950–2024) |
 | `data/countries.js`, `data/indicators/*.js` | CSV에서 생성한 페이지용 데이터 (직접 수정하지 말 것) |
-| `data/world-50m.js` | Natural Earth 1:50m 국경 (world-atlas@2.0.2) |
+| `data/world-50m.js`, `data/world-110m.js` | Natural Earth 국경 (world-atlas@2.0.2). 지구본은 멈춰 있을 때 1:50m, 움직이는 동안 1:110m을 그림 |
 | `vendor/` | d3@7.9.0, topojson-client@3.1.0 |
 | `scripts/import_sources.py` | UN WPP 2024, 세계은행 GDP·인구·육지 면적·실업률, Our World in Data CO2, i18n-iso-countries에서 `countries.csv`와 모든 지표 CSV(최저임금 제외)를 다시 만듦 (사용법은 파일 머리말) |
 | `scripts/build_data.py` | CSV → `data/*.js` 생성 |

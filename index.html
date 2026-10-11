@@ -191,7 +191,7 @@ dl.slip dd { margin: 0; text-align: right; min-width: 0; overflow-wrap: anywhere
 .trend .dot { fill: var(--accent); stroke: var(--panel); stroke-width: 2; }
 
 .others { margin-top: 16px; padding-top: 12px; border-top: 1px dashed var(--rule); }
-.others ul { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 2px; }
+.others ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
 .others button {
   width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; align-items: baseline;
   padding: 6px 6px; border: 0; border-radius: 6px; background: none; color: var(--ink); cursor: pointer; text-align: left; font: 13px var(--font-body);
@@ -240,7 +240,6 @@ dl.slip dd { margin: 0; text-align: right; min-width: 0; overflow-wrap: anywhere
 
   <div class="grid">
     <nav class="indicators" aria-label="지표 목록">
-      <div class="label">지표</div>
       <ul class="ind-list" id="indList"></ul>
       <section class="about card" id="about" aria-live="polite"></section>
     </nav>
@@ -260,7 +259,6 @@ dl.slip dd { margin: 0; text-align: right; min-width: 0; overflow-wrap: anywhere
         </div>
       </div>
       <div class="legend" aria-label="범례">
-        <div class="label" id="legendTitle"></div>
         <div class="legend-row" id="legendRow"></div>
         <div class="lg-extra" id="legendExtra"></div>
       </div>
@@ -288,6 +286,7 @@ dl.slip dd { margin: 0; text-align: right; min-width: 0; overflow-wrap: anywhere
 <script src="vendor/d3.min.js"></script>
 <script src="vendor/topojson-client.min.js"></script>
 <script src="data/world-50m.js"></script>
+<script src="data/world-110m.js"></script>
 <script src="data/countries.js"></script>
 <script src="data/indicators/minimum-wage.js"></script>
 <script src="data/indicators/life-expectancy.js"></script>
@@ -353,16 +352,23 @@ dl.slip dd { margin: 0; text-align: right; min-width: 0; overflow-wrap: anywhere
   const nameKo = key => (COUNTRIES[key] && COUNTRIES[key].ko) || key;
 
   // ---------- Geography ----------
-  const geoAll = topojson.feature(TOPO, TOPO.objects.countries).features.filter(f => f.properties.name !== "Antarctica");
-  const borders = topojson.mesh(TOPO, TOPO.objects.countries, (a, b) => a !== b);
+  // Two levels of detail: 1:110m while the globe moves (about 7x fewer points), 1:50m once it settles.
   // world-atlas leaves Kosovo without a numeric id; the data uses its UN code.
   const NAME_KEYS = { Kosovo: "412" };
-  geoAll.forEach(f => { f.key = f.id || NAME_KEYS[f.properties.name] || f.properties.name; f.bbox = d3.geoBounds(f); });
-  const featureByKey = new Map(geoAll.map(f => [f.key, f]));
+  function loadLevel(topo) {
+    const features = topojson.feature(topo, topo.objects.countries).features.filter(f => f.properties.name !== "Antarctica");
+    features.forEach(f => { f.key = f.id || NAME_KEYS[f.properties.name] || f.properties.name; });
+    return { features, borders: topojson.mesh(topo, topo.objects.countries, (a, b) => a !== b), byKey: new Map(features.map(f => [f.key, f])) };
+  }
+  const HI = loadLevel(TOPO);
+  const LO = window.WORLD_TOPO_LO ? loadLevel(window.WORLD_TOPO_LO) : HI;
+  const geoAll = HI.features;
+  geoAll.forEach(f => { f.bbox = d3.geoBounds(f); });
+  const featureByKey = HI.byKey;
   const labelOf = f => (COUNTRIES[f.key] ? COUNTRIES[f.key].ko : f.properties.name);
 
   // ---------- Colors from tokens ----------
-  let colors = {}, hatchPattern = null;
+  let colors = {}, hatchPattern = null, shading = null;
   function readColors() {
     const cs = getComputedStyle(document.documentElement);
     const g = n => cs.getPropertyValue(n).trim();
@@ -372,40 +378,58 @@ dl.slip dd { margin: 0; text-align: right; min-width: 0; overflow-wrap: anywhere
       graticule: g("--graticule"), border: g("--border"), focus: g("--focus"),
       shade: g("--shade"), shine: g("--shine"), bg: g("--bg"),
     };
-    hatchPattern = null;
+    hatchPattern = null; shading = null;
   }
 
   // ---------- Canvas globe ----------
   const canvas = document.getElementById("globe");
   const ctx = canvas.getContext("2d");
   const box = document.getElementById("globeBox");
-  const projection = d3.geoOrthographic().clipAngle(90).precision(0.4);
+  const projection = d3.geoOrthographic().clipAngle(90);
   const path = d3.geoPath(projection, ctx);
   const graticule = d3.geoGraticule10();
   const sphere = { type: "Sphere" };
+  const ZOOM_MIN = 0.8, ZOOM_MAX = 10;
   let width = 0, height = 0, dpr = 1, baseScale = 1, zoomK = 1;
   let rotation = [-127.5, -30, 0];
   let hovered = null, selected = null, legendFocus = null;
+  let moving = false, settleTimer = 0;
+
+  // Draw coarse while anything moves; switch back to full detail ~150ms after the last movement.
+  function markMoving() {
+    moving = true;
+    clearTimeout(settleTimer);
+    settleTimer = setTimeout(() => { moving = false; render(); }, 150);
+  }
 
   function resize() {
     const r = box.getBoundingClientRect();
     width = r.width; height = r.height;
     dpr = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width = Math.round(width * dpr);
-    canvas.height = Math.round(height * dpr);
     baseScale = Math.min(width, height) / 2 - 6;
-    hatchPattern = null;
+    hatchPattern = null; shading = null;
     render();
+  }
+
+  // Pixel density of the canvas backing store: full while at rest, 1x while moving
+  // (a 2x canvas has four times the pixels to fill on every frame).
+  let px = 0;
+  function setDensity(d) {
+    const w = Math.round(width * d), h = Math.round(height * d);
+    if (px !== d || canvas.width !== w || canvas.height !== h) {
+      px = d; canvas.width = w; canvas.height = h;
+      hatchPattern = null;
+    }
   }
 
   function getHatch() {
     if (hatchPattern) return hatchPattern;
-    const s = Math.round(6 * dpr);
+    const s = Math.round(6 * px);
     const c = document.createElement("canvas");
     c.width = c.height = s;
     const g = c.getContext("2d");
     g.fillStyle = colors.none; g.fillRect(0, 0, s, s);
-    g.strokeStyle = colors.hatch; g.lineWidth = 1.2 * dpr;
+    g.strokeStyle = colors.hatch; g.lineWidth = 1.2 * px;
     g.beginPath();
     g.moveTo(-1, s + 1); g.lineTo(s + 1, -1);
     g.moveTo(-1, 1); g.lineTo(1, -1);
@@ -416,11 +440,16 @@ dl.slip dd { margin: 0; text-align: right; min-width: 0; overflow-wrap: anywhere
   }
 
   function rowOf(f) { return ind.rows[f.key] || null; }
-  function fillFor(f) {
+  // Fill groups: one canvas fill per color instead of one per country.
+  function fillKey(f) {
     const r = rowOf(f);
-    if (!r) return colors.none;
-    if (r.status === "none") return getHatch();
-    return colors.seq[binOf(ind, r.value)];
+    const base = !r ? "nodata" : r.status === "none" ? "none" : "bin" + binOf(ind, r.value);
+    if (legendFocus === null) return base;
+    return base + (base === "bin" + legendFocus ? "" : ":dim");
+  }
+  function styleFor(key) {
+    const k = key.replace(":dim", "");
+    return k === "nodata" ? colors.none : k === "none" ? getHatch() : colors.seq[+k.slice(3)];
   }
 
   let frame = 0;
@@ -428,34 +457,48 @@ dl.slip dd { margin: 0; text-align: right; min-width: 0; overflow-wrap: anywhere
   function draw() {
     frame = 0;
     if (!width) return;
-    projection.scale(baseScale * zoomK).translate([width / 2, height / 2]).rotate(rotation);
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const level = moving ? LO : HI;
+    projection.scale(baseScale * zoomK).translate([width / 2, height / 2]).rotate(rotation)
+      .precision(moving ? 1 : 0.4);
+    setDensity(moving ? 1 : dpr);
+    ctx.setTransform(px, 0, 0, px, 0, 0);
     ctx.clearRect(0, 0, width, height);
     ctx.beginPath(); path(sphere); ctx.fillStyle = colors.ocean; ctx.fill();
     ctx.beginPath(); path(graticule); ctx.strokeStyle = colors.graticule; ctx.lineWidth = 0.6; ctx.stroke();
-    const dim = legendFocus !== null;
-    for (const f of geoAll) {
-      ctx.beginPath(); path(f);
-      ctx.fillStyle = fillFor(f);
-      if (dim) {
-        const r = rowOf(f);
-        ctx.globalAlpha = r && r.status === "value" && binOf(ind, r.value) === legendFocus ? 1 : 0.22;
-      }
-      ctx.fill();
-      ctx.globalAlpha = 1;
+
+    const groups = new Map();
+    for (const f of level.features) {
+      const k = fillKey(f);
+      if (!groups.has(k)) groups.set(k, []);
+      groups.get(k).push(f);
     }
-    ctx.beginPath(); path(borders); ctx.strokeStyle = colors.border; ctx.lineWidth = 0.6; ctx.stroke();
+    for (const [k, fs] of groups) {
+      ctx.beginPath();
+      for (const f of fs) path(f);
+      ctx.fillStyle = styleFor(k);
+      ctx.globalAlpha = k.endsWith(":dim") ? 0.22 : 1;
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    ctx.beginPath(); path(level.borders); ctx.strokeStyle = colors.border; ctx.lineWidth = 0.6; ctx.stroke();
+
     const [cx, cy] = projection.translate();
     const rad = projection.scale();
-    const grad = ctx.createRadialGradient(cx - rad * 0.35, cy - rad * 0.4, rad * 0.1, cx, cy, rad);
-    grad.addColorStop(0, colors.shine); grad.addColorStop(0.55, "rgba(0,0,0,0)"); grad.addColorStop(1, colors.shade);
-    ctx.beginPath(); path(sphere); ctx.fillStyle = grad; ctx.fill();
-    ctx.beginPath(); path(sphere); ctx.strokeStyle = colors.oceanEdge; ctx.lineWidth = 1; ctx.stroke();
-    if (hovered && hovered !== selected) {
+    if (!shading || shading.rad !== rad || shading.cx !== cx) {
+      const grad = ctx.createRadialGradient(cx - rad * 0.35, cy - rad * 0.4, rad * 0.1, cx, cy, rad);
+      grad.addColorStop(0, colors.shine); grad.addColorStop(0.55, "rgba(0,0,0,0)"); grad.addColorStop(1, colors.shade);
+      shading = { grad, rad, cx };
+    }
+    ctx.beginPath(); path(sphere); ctx.fillStyle = shading.grad; ctx.fill();
+    ctx.strokeStyle = colors.oceanEdge; ctx.lineWidth = 1; ctx.stroke();
+
+    if (hovered && hovered !== selected && !moving) {
       ctx.beginPath(); path(hovered); ctx.strokeStyle = colors.focus; ctx.lineWidth = 1; ctx.stroke();
     }
     if (selected) {
-      ctx.beginPath(); path(selected);
+      // tiny countries are missing from 1:110m; their 1:50m outline is cheap to draw
+      const sel = level.byKey.get(selected.key) || selected;
+      ctx.beginPath(); path(sel);
       ctx.strokeStyle = colors.bg; ctx.lineWidth = 4; ctx.stroke();
       ctx.strokeStyle = colors.focus; ctx.lineWidth = 1.8; ctx.stroke();
     }
@@ -476,33 +519,114 @@ dl.slip dd { margin: 0; text-align: right; min-width: 0; overflow-wrap: anywhere
     return null;
   }
 
-  // ---------- Drag to rotate, wheel / pinch to zoom ----------
-  let lastT = d3.zoomIdentity, dragMoved = false, spinning = false;
-  const zoom = d3.zoom()
-    .scaleExtent([0.8, 10])
-    .clickDistance(4)
-    .on("start", (e) => {
-      dragMoved = false; stopFly();
-      if (e.sourceEvent && e.sourceEvent.type !== "wheel") canvas.classList.add("dragging");
-    })
-    .on("zoom", (e) => {
-      const t = e.transform, src = e.sourceEvent;
-      if (src && src.type !== "wheel" && t.k === lastT.k) {
-        const k = 0.25 / zoomK * (300 / Math.max(baseScale, 1));
-        const dx = t.x - lastT.x, dy = t.y - lastT.y;
-        if (Math.abs(dx) + Math.abs(dy) > 0) {
-          dragMoved = true; setSpin(false);
-          rotation = [rotation[0] + dx * k, clampLat(rotation[1] - dy * k), 0];
-          hideTip();
-        }
-      }
-      zoomK = t.k; lastT = t; render();
-    })
-    .on("end", () => canvas.classList.remove("dragging"));
-  d3.select(canvas).call(zoom).on("dblclick.zoom", null);
+  // ---------- Drag to rotate (with inertia), wheel / pinch to zoom ----------
+  const pointers = new Map();
+  let drag = null, pinch = null, dragMoved = false, spinning = false, inertiaTimer = null, zoomTimer = null;
+  const clampLat = v => Math.max(-89, Math.min(89, v));
+  const clampZoom = k => Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, k));
+  // degrees of rotation per screen pixel, so the point under the cursor follows it near the center
+  const degPerPx = () => 180 / Math.PI / (baseScale * zoomK);
 
-  function clampLat(v) { return Math.max(-89, Math.min(89, v)); }
-  function zoomBy(f) { d3.select(canvas).transition().duration(reduceMotion ? 0 : 250).call(zoom.scaleBy, f); }
+  function stopMotion() { stopFly(); stopInertia(); }
+  function stopInertia() { if (inertiaTimer) { inertiaTimer.stop(); inertiaTimer = null; } }
+  function rotateBy(dx, dy) {
+    const k = degPerPx();
+    rotation = [rotation[0] + dx * k, clampLat(rotation[1] - dy * k), 0];
+  }
+
+  canvas.addEventListener("pointerdown", (e) => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    canvas.setPointerCapture(e.pointerId);
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    stopMotion(); setSpin(false); hideTip();
+    if (pointers.size === 1) {
+      dragMoved = false;
+      drag = { x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY, samples: [{ t: e.timeStamp, x: e.clientX, y: e.clientY }] };
+      canvas.classList.add("dragging");
+    } else if (pointers.size === 2) {
+      const [a, b] = [...pointers.values()];
+      pinch = { d0: Math.hypot(a.x - b.x, a.y - b.y) || 1, k0: zoomK };
+      drag = null;
+    }
+  });
+
+  canvas.addEventListener("pointermove", (e) => {
+    if (!pointers.has(e.pointerId)) return;
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pinch && pointers.size >= 2) {
+      const [a, b] = [...pointers.values()];
+      zoomK = clampZoom(pinch.k0 * Math.hypot(a.x - b.x, a.y - b.y) / pinch.d0);
+      dragMoved = true; markMoving(); render();
+      return;
+    }
+    if (!drag) return;
+    // use every coalesced sample so fast drags stay accurate
+    const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [];
+    for (const ev of (evs.length ? evs : [e])) {
+      rotateBy(ev.clientX - drag.x, ev.clientY - drag.y);
+      drag.x = ev.clientX; drag.y = ev.clientY;
+      drag.samples.push({ t: ev.timeStamp, x: ev.clientX, y: ev.clientY });
+    }
+    while (drag.samples.length > 2 && e.timeStamp - drag.samples[0].t > 80) drag.samples.shift();
+    if (Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) > 4) dragMoved = true;
+    markMoving(); render();
+  });
+
+  function endPointer(e) {
+    if (!pointers.has(e.pointerId)) return;
+    pointers.delete(e.pointerId);
+    if (pointers.size < 2) pinch = null;
+    if (pointers.size === 0) {
+      canvas.classList.remove("dragging");
+      if (drag && dragMoved && !reduceMotion) startInertia(drag.samples, e.timeStamp);
+      drag = null;
+    } else if (pointers.size === 1) {
+      // lifting one finger of a pinch continues as a drag with the remaining finger
+      const [p] = [...pointers.values()];
+      drag = { x: p.x, y: p.y, x0: p.x, y0: p.y, samples: [{ t: e.timeStamp, x: p.x, y: p.y }] };
+    }
+  }
+  canvas.addEventListener("pointerup", endPointer);
+  canvas.addEventListener("pointercancel", endPointer);
+
+  // Keep turning after release, slowing down with exponential friction.
+  function startInertia(samples, now) {
+    const first = samples[0], last = samples[samples.length - 1];
+    const dt = last.t - first.t;
+    if (dt <= 0 || now - last.t > 60) return;  // the pointer paused before release
+    let vx = (last.x - first.x) / dt, vy = (last.y - first.y) / dt;  // px per ms
+    if (Math.hypot(vx, vy) < 0.05) return;
+    stopInertia();
+    let prev = 0;
+    inertiaTimer = d3.timer((elapsed) => {
+      const step = Math.min(elapsed - prev, 32); prev = elapsed;
+      const decay = Math.exp(-step / 325);
+      vx *= decay; vy *= decay;
+      rotateBy(vx * step, vy * step);
+      markMoving(); render();
+      if (Math.hypot(vx, vy) < 0.01) stopInertia();
+    });
+  }
+
+  canvas.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    stopMotion();
+    const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 400 : 1;
+    zoomK = clampZoom(zoomK * Math.exp(-e.deltaY * unit * 0.0015));
+    markMoving(); render();
+  }, { passive: false });
+
+  function zoomBy(f) {
+    if (zoomTimer) zoomTimer.stop();
+    const from = zoomK, to = clampZoom(zoomK * f);
+    if (reduceMotion) { zoomK = to; render(); return; }
+    zoomTimer = d3.timer((el) => {
+      const t = Math.min(1, el / 250);
+      zoomK = from * Math.pow(to / from, d3.easeCubicOut(t));
+      markMoving(); render();
+      if (t >= 1) { zoomTimer.stop(); zoomTimer = null; }
+    });
+  }
   document.getElementById("zoomIn").addEventListener("click", () => zoomBy(1.5));
   document.getElementById("zoomOut").addEventListener("click", () => zoomBy(1 / 1.5));
   document.getElementById("home").addEventListener("click", () => select(featureByKey.get(KOREA), true));
@@ -510,9 +634,9 @@ dl.slip dd { margin: 0; text-align: right; min-width: 0; overflow-wrap: anywhere
     const step = 8 / zoomK;
     const map = { ArrowLeft: [step, 0], ArrowRight: [-step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] };
     if (map[e.key]) {
-      e.preventDefault(); setSpin(false);
+      e.preventDefault(); setSpin(false); stopMotion();
       rotation = [rotation[0] + map[e.key][0], clampLat(rotation[1] + map[e.key][1]), 0];
-      render();
+      markMoving(); render();
     } else if (e.key === "+" || e.key === "=") zoomBy(1.5);
     else if (e.key === "-") zoomBy(1 / 1.5);
   });
@@ -521,7 +645,7 @@ dl.slip dd { margin: 0; text-align: right; min-width: 0; overflow-wrap: anywhere
   const tip = document.getElementById("tip");
   let pending = null;
   canvas.addEventListener("pointermove", (e) => {
-    if (e.buttons) return;
+    if (e.buttons || moving || pointers.size) return;
     pending = e;
     requestAnimationFrame(() => {
       if (!pending) return;
@@ -573,7 +697,7 @@ dl.slip dd { margin: 0; text-align: right; min-width: 0; overflow-wrap: anywhere
   let flyTimer = null;
   function stopFly() { if (flyTimer) { flyTimer.stop(); flyTimer = null; } }
   function flyTo(f) {
-    stopFly();
+    stopMotion();
     const [lon, lat] = focusPoint(f);
     const target = [-lon, clampLat(-lat), 0];
     const d = ((target[0] - rotation[0] + 540) % 360) - 180;
@@ -584,7 +708,7 @@ dl.slip dd { margin: 0; text-align: right; min-width: 0; overflow-wrap: anywhere
     flyTimer = d3.timer((elapsed) => {
       const t = Math.min(1, elapsed / dur);
       rotation = interp(d3.easeCubicInOut(t));
-      render();
+      markMoving(); render();
       if (t >= 1) stopFly();
     });
   }
@@ -597,8 +721,9 @@ dl.slip dd { margin: 0; text-align: right; min-width: 0; overflow-wrap: anywhere
     spinBtn.setAttribute("aria-pressed", String(on));
     if (spinTimer) { spinTimer.stop(); spinTimer = null; }
     if (on) {
+      stopMotion();
       let last = 0;
-      spinTimer = d3.timer((el) => { rotation = [rotation[0] + (el - last) * 0.006, rotation[1], 0]; last = el; render(); });
+      spinTimer = d3.timer((el) => { rotation = [rotation[0] + (el - last) * 0.006, rotation[1], 0]; last = el; markMoving(); render(); });
     }
   }
   spinBtn.addEventListener("click", () => setSpin(!spinning));
@@ -639,7 +764,6 @@ dl.slip dd { margin: 0; text-align: right; min-width: 0; overflow-wrap: anywhere
 
   // ---------- Center: heading & legend ----------
   function renderStage() {
-    document.getElementById("legendTitle").textContent = ind.legendTitle;
     document.getElementById("legendRow").innerHTML = ind.binLabels.map((l, i) => `
       <button type="button" class="lg-item" data-bin="${i}" aria-label="${l} 구간 강조">
         <span class="lg-swatch" style="background:${colors.seq[i]}"></span><span>${l}</span>
@@ -680,7 +804,7 @@ dl.slip dd { margin: 0; text-align: right; min-width: 0; overflow-wrap: anywhere
   function othersHtml(key) {
     const others = INDICATORS.filter(i => i !== ind);
     if (!others.length) return "";
-    return `<div class="others"><div class="label">이 나라의 다른 지표</div><ul>${others.map(i => {
+    return `<div class="others"><ul>${others.map(i => {
       const r = i.rows[key];
       const val = !r ? "자료 없음" : r.status === "none" ? "없음" : fmtValue(i, r.value);
       const rk = r && r.status === "value" ? `${r.rank} / ${i.ranked.length}위` : "";
